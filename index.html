@@ -26,9 +26,8 @@
         }
 
         html {
-            scroll-snap-type: y mandatory;
+            scroll-snap-type: y proximity;
             scroll-behavior: auto;
-            overscroll-behavior-y: none;
         }
 
         html,
@@ -73,10 +72,9 @@
         .scene-section {
             width: 100%;
             height: 100vh;
-            height: 100svh;
+            height: 100dvh;
             min-height: 100vh;
-            min-height: 100svh;
-            max-height: 100svh;
+            min-height: 100dvh;
             scroll-snap-align: start;
             scroll-snap-stop: normal;
             display: flex;
@@ -85,17 +83,22 @@
             align-items: center;
             padding: 16px 16px max(18px, env(safe-area-inset-bottom) + 12px) 16px;
             position: relative;
+            box-sizing: border-box;
         }
 
         #sec-0 {
             height: 100vh;
-            height: 100svh;
+            height: 100dvh;
             min-height: 100vh;
-            min-height: 100svh;
-            max-height: 100svh;
+            min-height: 100dvh;
             justify-content: space-between;
             padding-top: max(20px, env(safe-area-inset-top) + 12px);
             padding-bottom: max(18px, env(safe-area-inset-bottom) + 12px);
+        }
+
+        #sec-5 {
+            scroll-snap-align: start end;
+            margin-bottom: 40px;
         }
 
         /* Authentische, stylische Pixel-Art / Voxel Dialog-Karten */
@@ -114,15 +117,14 @@
             font-size: 13px;
             line-height: 1.55;
             color: #f8fafc;
-            transform: translateY(16px) scale(0.98);
-            opacity: 0;
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+            opacity: 1;
+            transform: none;
             position: relative;
         }
 
         .scene-section.active .voxel-card {
-            transform: translateY(0) scale(1);
             opacity: 1;
+            transform: none;
         }
 
         /* Pixel-Art Ecken-Highlights für echten RPG / Voxel Game Look */
@@ -297,6 +299,9 @@
                     Geburtstag! 💛🎉</p>
             </div>
         </section>
+
+        <!-- Puffer am Ende für butterweiches Erreichen der letzten Ebene auf allen Handys -->
+        <div style="height: 140px; width: 100%; pointer-events: none;"></div>
 
     </main>
 
@@ -1876,11 +1881,44 @@
             let targetOrbitX = 0;
             let targetOrbitY = 0;
 
+            const sections = document.querySelectorAll('.scene-section');
+
             function updateScrollProgress() {
-                const h = window.innerHeight;
-                if (h <= 0) return;
-                const raw = window.scrollY / h;
-                scrollProgress = Math.max(0, Math.min(5, raw));
+                const totalSections = sections.length;
+                if (!totalSections) return;
+
+                const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+                const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+
+                // Wenn man ganz unten ist, garantiert auf End-Szene (5.0) fixieren!
+                if (scrollY >= maxScroll - 6) {
+                    scrollProgress = totalSections - 1;
+                    return;
+                }
+
+                // Exakte, richtungsunabhängige Fortschrittsberechnung anhand der Section-Offsets:
+                // Bleibt 100% stabil bei Ein-/Ausblenden der Adressleiste & Richtungswechsel!
+                const tops = [];
+                for (let i = 0; i < totalSections; i++) {
+                    tops.push(sections[i].offsetTop);
+                }
+
+                if (scrollY <= tops[0]) {
+                    scrollProgress = 0;
+                } else if (scrollY >= tops[totalSections - 1]) {
+                    scrollProgress = totalSections - 1;
+                } else {
+                    for (let i = 0; i < totalSections - 1; i++) {
+                        const topA = tops[i];
+                        const topB = tops[i + 1];
+                        if (scrollY >= topA && scrollY < topB) {
+                            const range = topB - topA;
+                            const frac = range > 0 ? (scrollY - topA) / range : 0;
+                            scrollProgress = i + frac;
+                            break;
+                        }
+                    }
+                }
             }
             window.addEventListener('scroll', updateScrollProgress, { passive: true });
             updateScrollProgress();
@@ -1939,7 +1977,6 @@
                 window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
             });
 
-            const sections = document.querySelectorAll('.scene-section');
             const secObserver = new IntersectionObserver((entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
@@ -1954,15 +1991,26 @@
             // ============================================================================
             // 8. RESPONSIVE KAMERA-ANPASSUNG (SMARTPHONE HOCHFORMAT OPTIMIERUNG)
             // ============================================================================
+            let lastWidth = window.innerWidth;
+            let lastHeight = window.innerHeight;
+
             function updateResponsiveCamera() {
                 const w = window.innerWidth;
                 const h = window.innerHeight;
-                const aspect = w / h;
-                camera.aspect = aspect;
-                // Ruhiges, fokussiertes Blickfeld (48°): Verhindert extremes Fisheye oder gleichzeitiges Sehen mehrerer Etagen!
-                camera.fov = 48;
-                camera.updateProjectionMatrix();
-                renderer.setSize(w, h);
+
+                // Auf Smartphones ändert sich innerHeight beim Scrollen ständig um 50-80px wegen der Adressleiste.
+                // Nur neu rendern/resizen, wenn sich die Bildschirmbreite (z. B. Handy-Drehung) oder die Höhe drastisch ändert (> 150px).
+                const widthChanged = Math.abs(w - lastWidth) > 5;
+                const heightDrastic = Math.abs(h - lastHeight) > 150;
+
+                if (widthChanged || heightDrastic) {
+                    lastWidth = w;
+                    lastHeight = h;
+                    camera.aspect = w / h;
+                    camera.fov = 48;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(w, h);
+                }
             }
             updateResponsiveCamera();
 
