@@ -25,6 +25,12 @@
             user-select: none;
         }
 
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: auto;
+            overscroll-behavior-y: none;
+        }
+
         html,
         body {
             width: 100%;
@@ -32,7 +38,7 @@
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #ffffff;
             overflow-x: hidden;
-            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
 
         .font-pixel {
@@ -66,23 +72,30 @@
 
         .scene-section {
             width: 100%;
+            height: 100vh;
             height: 100svh;
+            min-height: 100vh;
             min-height: 100svh;
+            max-height: 100svh;
+            scroll-snap-align: start;
+            scroll-snap-stop: normal;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             align-items: center;
-            padding: 20px 16px max(140px, env(safe-area-inset-bottom) + 115px) 16px;
+            padding: 16px 16px max(18px, env(safe-area-inset-bottom) + 12px) 16px;
             position: relative;
         }
 
         #sec-0 {
-            height: 88svh;
-            min-height: 88svh;
-            max-height: 88svh;
+            height: 100vh;
+            height: 100svh;
+            min-height: 100vh;
+            min-height: 100svh;
+            max-height: 100svh;
             justify-content: space-between;
-            padding-top: max(32px, env(safe-area-inset-top) + 16px);
-            padding-bottom: max(140px, env(safe-area-inset-bottom) + 115px);
+            padding-top: max(20px, env(safe-area-inset-top) + 12px);
+            padding-bottom: max(18px, env(safe-area-inset-bottom) + 12px);
         }
 
         /* Authentische, stylische Pixel-Art / Voxel Dialog-Karten */
@@ -92,18 +105,18 @@
             border: 3px solid #ffd000;
             outline: 3px solid #000000;
             box-shadow:
-                5px 5px 0px #000000,
+                4px 4px 0px #000000,
                 inset 0 0 0 2px rgba(255, 208, 0, 0.2);
             border-radius: 4px;
-            padding: 16px 16px 14px 16px;
-            max-width: 370px;
-            width: 90%;
-            font-size: 13.5px;
-            line-height: 1.6;
+            padding: 14px 14px 12px 14px;
+            max-width: 380px;
+            width: 92%;
+            font-size: 13px;
+            line-height: 1.55;
             color: #f8fafc;
-            transform: translateY(24px) scale(0.96);
+            transform: translateY(16px) scale(0.98);
             opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.4s ease;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
             position: relative;
         }
 
@@ -166,6 +179,7 @@
             font-size: 7.5px;
             color: #ffd000;
             margin-top: 8px;
+            cursor: pointer;
             animation: bounceHint 1.2s infinite ease-in-out;
         }
 
@@ -182,12 +196,12 @@
         }
 
         .hero-title {
-            font-size: clamp(15px, 4.8vw, 22px);
+            font-size: clamp(13px, 4.2vw, 21px);
             color: #ffe600;
             text-align: center;
-            line-height: 1.5;
+            line-height: 1.4;
             text-shadow:
-                3px 3px 0px #000,
+                2px 2px 0px #000,
                 -2px -2px 0px #000,
                 2px -2px 0px #000,
                 -2px 2px 0px #000,
@@ -724,7 +738,7 @@
 
             // 3D-Voxel-Geburtstagstorte im Himmel
             const cakeGroup = new THREE.Group();
-            cakeGroup.position.set(0, -1.0, 2);
+            cakeGroup.position.set(0, 0.8, 1.5);
             skyGroup.add(cakeGroup);
             addVoxel(cakeGroup, 0, -1.6, 0, 5.4, 0.35, 5.4, '#ffd700', { metalness: 0.6, roughness: 0.3 });
             addVoxel(cakeGroup, 0, -0.6, 0, 4.4, 1.7, 4.4, '#fff0f5');
@@ -1799,36 +1813,36 @@
             // 6. NAHTLOSE KAMERA-CHOREOGRAFIE & MINECRAFT-SHADER-FARBEN
             // ============================================================================
             const keyframes = [
-                // 0: Hoher Himmel (nur Torte & Wolkenmeer, KEINE Brücke / Stadt sichtbar!)
+                // 0: Hoher Himmel (nur Torte & Wolkenmeer, Torte perfekt im freien Fenster über der Karte!)
                 {
-                    camX: 0, camY: 96.0, camZ: 22.0, lookX: 0, lookY: 94.0, lookZ: -1.0,
+                    camX: 0, camY: 96.2, camZ: 21.0, lookX: 0, lookY: 95.8, lookZ: 0.0,
                     skyTop: new THREE.Color('#38bdf8'),
                     skyHorizon: new THREE.Color('#e0f2fe'),
                     skyBottom: new THREE.Color('#bae6fd'),
                     fogCol: new THREE.Color('#bae6fd'),
                     amb: 0.95
                 },
-                // 1: Lissabon Panorama, Magischer Sonnenuntergang, Brücke & Tram 28 (Fokussiert auf die Tram oben!)
+                // 1: Lissabon Panorama, Magischer Sonnenuntergang, Brücke & Tram 28 (Tram fährt frei & prominent im oberen Bereich!)
                 {
-                    camX: 0, camY: 23.2, camZ: 17.5, lookX: 0, lookY: 22.8, lookZ: -3.0,
+                    camX: 0, camY: 23.0, camZ: 17.0, lookX: 0, lookY: 23.6, lookZ: -1.5,
                     skyTop: new THREE.Color('#2d1558'),
                     skyHorizon: new THREE.Color('#ff5400'),
                     skyBottom: new THREE.Color('#ffbe0b'),
                     fogCol: new THREE.Color('#ff7b47'),
                     amb: 0.85
                 },
-                // 2: Nah-Zoom auf Luisa auf ihrem Balkon (1. OG - nur Luisa & ihr Balkon!)
+                // 2: Nah-Zoom auf Luisa auf ihrem Balkon (1. OG - Luisas Gesicht & Drink im perfekten Fokus!)
                 {
-                    camX: 0, camY: 13.0, camZ: 16.0, lookX: 0, lookY: 12.0, lookZ: 0,
+                    camX: 0, camY: 13.5, camZ: 15.0, lookX: 0, lookY: 12.8, lookZ: 1.0,
                     skyTop: new THREE.Color('#381b5c'),
                     skyHorizon: new THREE.Color('#f4a261'),
                     skyBottom: new THREE.Color('#e76f51'),
                     fogCol: new THREE.Color('#f4a261'),
                     amb: 0.78
                 },
-                // 3: Hinab zum Juwelier JOIAS (EG) - Luisa, Julius und Schaufenster, geradlinig zentriert!
+                // 3: Hinab zum Juwelier JOIAS (EG) - Glänzende Vitrine & Solitär-Brillant!
                 {
-                    camX: 0, camY: -1.0, camZ: 18.5, lookX: 0, lookY: -1.6, lookZ: -1.0,
+                    camX: 0, camY: 0.5, camZ: 16.5, lookX: 0, lookY: 0.0, lookZ: -1.0,
                     skyTop: new THREE.Color('#1f1933'),
                     skyHorizon: new THREE.Color('#4a2545'),
                     skyBottom: new THREE.Color('#2b2d42'),
@@ -1837,7 +1851,7 @@
                 },
                 // 4: Kanalisation & Katakomben - fokussierter Blick auf die Maulwürfe!
                 {
-                    camX: 0, camY: -16.0, camZ: 17.0, lookX: 0, lookY: -16.5, lookZ: -1.0,
+                    camX: 0, camY: -15.5, camZ: 16.0, lookX: 0, lookY: -16.0, lookZ: -0.5,
                     skyTop: new THREE.Color('#100b1e'),
                     skyHorizon: new THREE.Color('#201426'),
                     skyBottom: new THREE.Color('#150d0a'),
@@ -1846,7 +1860,7 @@
                 },
                 // 5: Underground Rave Cave - DJ Booth & Lichtshow
                 {
-                    camX: 0, camY: -33.5, camZ: 18.0, lookX: 0, lookY: -34.8, lookZ: -3.0,
+                    camX: 0, camY: -33.5, camZ: 17.0, lookX: 0, lookY: -34.5, lookZ: -3.0,
                     skyTop: new THREE.Color('#05020c'),
                     skyHorizon: new THREE.Color('#16082b'),
                     skyBottom: new THREE.Color('#070312'),
@@ -1863,27 +1877,33 @@
             let targetOrbitY = 0;
 
             function updateScrollProgress() {
-                const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-                const raw = window.scrollY / maxScroll;
-                scrollProgress = Math.max(0, Math.min(5, raw * 5));
+                const h = window.innerHeight;
+                if (h <= 0) return;
+                const raw = window.scrollY / h;
+                scrollProgress = Math.max(0, Math.min(5, raw));
             }
             window.addEventListener('scroll', updateScrollProgress, { passive: true });
             updateScrollProgress();
 
-            // Touch- & Maus-Drag für sanften, ruhigen 3D-Blick (kein störendes Wackeln!)
+            // Touch- & Maus-Drag für sanften, ruhigen 3D-Blick
             let isDragging = false;
             let startX = 0;
             let startY = 0;
 
             window.addEventListener('pointerdown', (e) => {
                 if (e.target.closest('button') || e.target.closest('input')) return;
+                if (e.pointerType === 'touch') {
+                    // Auf mobilen Touchscreens ist Wischen für den nativen Story-Scroll reserviert!
+                    isDragging = false;
+                    return;
+                }
                 isDragging = true;
                 startX = e.clientX;
                 startY = e.clientY;
             }, { passive: true });
 
             window.addEventListener('pointermove', (e) => {
-                if (!isDragging) return;
+                if (!isDragging || e.pointerType === 'touch') return;
                 const dx = e.clientX - startX;
                 const dy = e.clientY - startY;
                 startX = e.clientX;
@@ -1914,6 +1934,11 @@
                 });
             }
 
+            // Klick auf den Scroll-Hinweis führt direkt zur nächsten Szene
+            document.querySelector('.scroll-hint')?.addEventListener('click', () => {
+                window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+            });
+
             const sections = document.querySelectorAll('.scene-section');
             const secObserver = new IntersectionObserver((entries) => {
                 entries.forEach((entry) => {
@@ -1923,7 +1948,7 @@
                         entry.target.classList.remove('active');
                     }
                 });
-            }, { threshold: 0.15 });
+            }, { threshold: 0.1 });
             sections.forEach((s) => secObserver.observe(s));
 
             // ============================================================================
@@ -1952,10 +1977,12 @@
 
             function animate() {
                 requestAnimationFrame(animate);
-                const t = clock.getElapsedTime();
+                const delta = Math.min(clock.getDelta(), 0.05);
+                const t = clock.elapsedTime;
 
-                // 1. Kamera-Interpolation entlang der zusammenhängenden Welt
-                smoothProgress += (scrollProgress - smoothProgress) * 0.08;
+                // 1. Kamera-Interpolation entlang der zusammenhängenden Welt (snappy, reaktionsschnell & 100% lag-frei)
+                const damping = 1 - Math.exp(-15 * delta);
+                smoothProgress += (scrollProgress - smoothProgress) * damping;
                 const idx = Math.min(4, Math.floor(smoothProgress));
                 const fract = smoothProgress - idx;
                 const k1 = keyframes[idx];
