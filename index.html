@@ -37,7 +37,9 @@
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #ffffff;
             overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
+            /* Kein Gummiband-Überscrollen auf iOS -> kein schwarzer Rand oben/unten */
+            overscroll-behavior-y: none;
+            -webkit-text-size-adjust: 100%;
         }
 
         .font-pixel {
@@ -49,10 +51,15 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
+            width: 100%;
             height: 100vh;
+            /* lvh = größter Viewport: Canvas deckt IMMER den ganzen Bildschirm ab, auch bei eingefahrener Safari-Leiste */
+            height: 100lvh;
             z-index: 1;
             pointer-events: auto;
+            transform: translateZ(0);
+            will-change: transform;
+            contain: strict;
         }
 
         canvas {
@@ -71,10 +78,9 @@
 
         .scene-section {
             width: 100%;
+            /* svh = konstant, ändert sich NICHT beim Ein-/Ausfahren der Safari-Leiste -> keine springenden Banner */
             height: 100vh;
-            height: 100dvh;
-            min-height: 100vh;
-            min-height: 100dvh;
+            height: 100svh;
             scroll-snap-align: start;
             scroll-snap-stop: normal;
             display: flex;
@@ -87,18 +93,17 @@
         }
 
         #sec-0 {
-            height: 100vh;
-            height: 100dvh;
-            min-height: 100vh;
-            min-height: 100dvh;
             justify-content: space-between;
             padding-top: max(20px, env(safe-area-inset-top) + 12px);
             padding-bottom: max(18px, env(safe-area-inset-bottom) + 12px);
         }
 
-        #sec-5 {
-            scroll-snap-align: start end;
-            margin-bottom: 40px;
+        /* Exakt so hoch wie die Safari-Leiste: letzte Szene ist immer erreichbar, ohne sichtbaren Leerraum */
+        .end-spacer {
+            width: 100%;
+            height: 0;
+            height: calc(100lvh - 100svh);
+            pointer-events: none;
         }
 
         /* Authentische, stylische Pixel-Art / Voxel Dialog-Karten */
@@ -301,7 +306,7 @@
         </section>
 
         <!-- Puffer am Ende für butterweiches Erreichen der letzten Ebene auf allen Handys -->
-        <div style="height: 140px; width: 100%; pointer-events: none;"></div>
+        <div class="end-spacer"></div>
 
     </main>
 
@@ -326,8 +331,9 @@
                 antialias: true,
                 powerPreference: 'high-performance'
             });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight, false);
+            // iPhone 16 hat DPR 3 – auf 2 begrenzt: gestochen scharf, aber ~55% weniger Pixel = stabile 60 FPS
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             // Minecraft-Style Cinematic Shader Tone Mapping
@@ -1882,46 +1888,19 @@
             let targetOrbitY = 0;
 
             const sections = document.querySelectorAll('.scene-section');
+            const lastSceneIndex = sections.length - 1;
 
-            function updateScrollProgress() {
-                const totalSections = sections.length;
-                if (!totalSections) return;
+            // Konstante Sektionshöhe (100svh) – ändert sich auf dem iPhone NICHT, wenn die Safari-Leiste ein-/ausfährt.
+            let sectionHeight = sections[0] ? sections[0].offsetHeight : window.innerHeight;
 
-                const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-                const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-
-                // Wenn man ganz unten ist, garantiert auf End-Szene (5.0) fixieren!
-                if (scrollY >= maxScroll - 6) {
-                    scrollProgress = totalSections - 1;
-                    return;
-                }
-
-                // Exakte, richtungsunabhängige Fortschrittsberechnung anhand der Section-Offsets:
-                // Bleibt 100% stabil bei Ein-/Ausblenden der Adressleiste & Richtungswechsel!
-                const tops = [];
-                for (let i = 0; i < totalSections; i++) {
-                    tops.push(sections[i].offsetTop);
-                }
-
-                if (scrollY <= tops[0]) {
-                    scrollProgress = 0;
-                } else if (scrollY >= tops[totalSections - 1]) {
-                    scrollProgress = totalSections - 1;
-                } else {
-                    for (let i = 0; i < totalSections - 1; i++) {
-                        const topA = tops[i];
-                        const topB = tops[i + 1];
-                        if (scrollY >= topA && scrollY < topB) {
-                            const range = topB - topA;
-                            const frac = range > 0 ? (scrollY - topA) / range : 0;
-                            scrollProgress = i + frac;
-                            break;
-                        }
-                    }
-                }
+            // Wird einmal pro Frame im Render-Loop gelesen (synchron zum Display, kein Event-Stau beim Momentum-Scroll)
+            function readScrollProgress() {
+                const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+                const p = scrollY / Math.max(1, sectionHeight);
+                scrollProgress = Math.max(0, Math.min(lastSceneIndex, p));
             }
-            window.addEventListener('scroll', updateScrollProgress, { passive: true });
-            updateScrollProgress();
+            readScrollProgress();
+            smoothProgress = scrollProgress;
 
             // Touch- & Maus-Drag für sanften, ruhigen 3D-Blick
             let isDragging = false;
@@ -1974,7 +1953,7 @@
 
             // Klick auf den Scroll-Hinweis führt direkt zur nächsten Szene
             document.querySelector('.scroll-hint')?.addEventListener('click', () => {
-                window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+                window.scrollTo({ top: sectionHeight, behavior: 'smooth' });
             });
 
             const secObserver = new IntersectionObserver((entries) => {
@@ -1991,26 +1970,22 @@
             // ============================================================================
             // 8. RESPONSIVE KAMERA-ANPASSUNG (SMARTPHONE HOCHFORMAT OPTIMIERUNG)
             // ============================================================================
-            let lastWidth = window.innerWidth;
-            let lastHeight = window.innerHeight;
+            let lastW = 0;
+            let lastH = 0;
 
             function updateResponsiveCamera() {
-                const w = window.innerWidth;
-                const h = window.innerHeight;
+                // Größe vom Canvas-Container (100lvh) – bleibt beim Scrollen konstant, ändert sich nur beim Drehen
+                const w = container.clientWidth || window.innerWidth;
+                const h = container.clientHeight || window.innerHeight;
+                sectionHeight = sections[0] ? sections[0].offsetHeight : window.innerHeight;
 
-                // Auf Smartphones ändert sich innerHeight beim Scrollen ständig um 50-80px wegen der Adressleiste.
-                // Nur neu rendern/resizen, wenn sich die Bildschirmbreite (z. B. Handy-Drehung) oder die Höhe drastisch ändert (> 150px).
-                const widthChanged = Math.abs(w - lastWidth) > 5;
-                const heightDrastic = Math.abs(h - lastHeight) > 150;
-
-                if (widthChanged || heightDrastic) {
-                    lastWidth = w;
-                    lastHeight = h;
-                    camera.aspect = w / h;
-                    camera.fov = 48;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(w, h);
-                }
+                if (w === lastW && h === lastH) return;
+                lastW = w;
+                lastH = h;
+                camera.aspect = w / h;
+                camera.fov = 48;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h, false);
             }
             updateResponsiveCamera();
 
@@ -2028,11 +2003,15 @@
                 const delta = Math.min(clock.getDelta(), 0.05);
                 const t = clock.elapsedTime;
 
-                // 1. Kamera-Interpolation entlang der zusammenhängenden Welt (snappy, reaktionsschnell & 100% lag-frei)
-                const damping = 1 - Math.exp(-15 * delta);
+                // 1. Kamera-Interpolation: Scroll pro Frame lesen, weich nachziehen & sanft in jeder Szene "ankommen"
+                readScrollProgress();
+                const damping = 1 - Math.exp(-9 * delta);
                 smoothProgress += (scrollProgress - smoothProgress) * damping;
+                if (Math.abs(scrollProgress - smoothProgress) < 0.0005) smoothProgress = scrollProgress;
                 const idx = Math.min(4, Math.floor(smoothProgress));
-                const fract = smoothProgress - idx;
+                const rawFract = smoothProgress - idx;
+                // Smoothstep-Easing: Kamera verweilt ruhig an jeder Szene und gleitet dazwischen flüssig
+                const fract = rawFract * rawFract * (3 - 2 * rawFract);
                 const k1 = keyframes[idx];
                 const k2 = keyframes[idx + 1];
 
@@ -2124,7 +2103,18 @@
                     if (bc.dir < 0 && bc.mesh.position.x < -75) bc.mesh.position.x = 75;
                 });
 
-                tramGroup.position.x = -24 + ((t * 4.2) % 48);
+                // Tram 28 fährt ein, hält ~4 s an der "Haltestelle" in Bildmitte und fährt weiter (im Hochformat immer sichtbar)
+                const tramCycle = (t % 11) / 11;
+                const easeInOut = (x) => x * x * (3 - 2 * x);
+                let tramX;
+                if (tramCycle < 0.3) {
+                    tramX = THREE.MathUtils.lerp(-26, 0, easeInOut(tramCycle / 0.3));
+                } else if (tramCycle < 0.68) {
+                    tramX = 0;
+                } else {
+                    tramX = THREE.MathUtils.lerp(0, 26, easeInOut((tramCycle - 0.68) / 0.32));
+                }
+                tramGroup.position.x = tramX;
 
                 // 4. Hausfassade: Luisa auf dem Balkon (1. OG) & im Juwelierladen (EG)
                 const beatBounce = Math.abs(Math.sin(t * 4.5)) * 0.16;
@@ -2208,7 +2198,15 @@
                 renderer.render(scene, camera);
             }
 
+            // Shader Warm-up: alle Materialien vorab kompilieren -> kein Ruckler beim ersten Erreichen einer Szene
+            try {
+                renderer.compile(scene, camera);
+            } catch (err) {
+                console.warn('Shader precompile warning:', err);
+            }
+
             window.addEventListener('resize', updateResponsiveCamera);
+            window.addEventListener('orientationchange', () => setTimeout(updateResponsiveCamera, 250));
 
             animate();
         };
