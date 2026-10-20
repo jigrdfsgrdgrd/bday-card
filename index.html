@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Happy Birthday, Luisa! 🎉 (3D Voxel World)</title>
+    <!-- Modern Luxury & Retro Pixel Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Press+Start+2P&display=swap"
+        rel="stylesheet">
+    <!-- Tailwind CSS für responsives HUD & Layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js WebGL Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        html,
+        body {
+            width: 100%;
+            background-color: #070312;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        /* Fixierter 3D-WebGL-Viewport im Hintergrund */
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: auto;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Scrollbare Story-Ebene über der 3D-Welt */
+        .scroll-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .scene-section {
+            width: 100%;
+            height: 100svh;
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 20px 16px max(140px, env(safe-area-inset-bottom) + 115px) 16px;
+            position: relative;
+        }
+
+        #sec-0 {
+            height: 88svh;
+            min-height: 88svh;
+            max-height: 88svh;
+            justify-content: space-between;
+            padding-top: max(32px, env(safe-area-inset-top) + 16px);
+            padding-bottom: max(140px, env(safe-area-inset-bottom) + 115px);
+        }
+
+        /* Authentische, stylische Pixel-Art / Voxel Dialog-Karten */
+        .voxel-card {
+            pointer-events: auto;
+            background: rgba(18, 13, 32, 0.94);
+            border: 3px solid #ffd000;
+            outline: 3px solid #000000;
+            box-shadow:
+                5px 5px 0px #000000,
+                inset 0 0 0 2px rgba(255, 208, 0, 0.2);
+            border-radius: 4px;
+            padding: 16px 16px 14px 16px;
+            max-width: 370px;
+            width: 90%;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #f8fafc;
+            transform: translateY(24px) scale(0.96);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.4s ease;
+            position: relative;
+        }
+
+        .scene-section.active .voxel-card {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        /* Pixel-Art Ecken-Highlights für echten RPG / Voxel Game Look */
+        .voxel-card::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 6px;
+            height: 6px;
+            background: #ffffff;
+            box-shadow: 2px 2px 0 #000000;
+        }
+
+        .voxel-card::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 6px;
+            height: 6px;
+            background: #ffffff;
+            box-shadow: -2px -2px 0 #000000;
+        }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 5px 8px 4px 8px;
+            margin-bottom: 8px;
+            background: #2b1f4d;
+            border: 2px solid #ffd000;
+            box-shadow: 2px 2px 0px #000000;
+            color: #ffd000;
+        }
+
+        .card-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: #ffffff;
+            margin-bottom: 7px;
+            text-shadow: 2px 2px 0px #000000;
+        }
+
+        .scroll-hint {
+            display: inline-block;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 7.5px;
+            color: #ffd000;
+            margin-top: 8px;
+            animation: bounceHint 1.2s infinite ease-in-out;
+        }
+
+        @keyframes bounceHint {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(3px);
+            }
+        }
+
+        .hero-title {
+            font-size: clamp(15px, 4.8vw, 22px);
+            color: #ffe600;
+            text-align: center;
+            line-height: 1.5;
+            text-shadow:
+                3px 3px 0px #000,
+                -2px -2px 0px #000,
+                2px -2px 0px #000,
+                -2px 2px 0px #000,
+                0px 6px 18px rgba(0, 0, 0, 0.65);
+            animation: floatHero 2.8s infinite ease-in-out;
+        }
+
+        @keyframes floatHero {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(-0.5deg);
+            }
+
+            50% {
+                transform: translateY(-7px) rotate(0.5deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Fixierter 3D-WebGL-Canvas -->
+    <div id="webgl-container"></div>
+
+    <main class="scroll-container">
+
+        <!-- SZENE 1: HIMMEL & LUFTBALLONS -->
+        <section class="scene-section active" id="sec-0" data-index="0">
+            <div class="hero-title-wrap transition-all duration-500">
+                <h1 class="hero-title font-pixel">
+                    ALLES GUTE ZUM<br>25. GEBURTSTAG,<br>LUISA!
+                </h1>
+            </div>
+            <div class="voxel-card">
+                <div class="card-badge">⭐ LEVEL 25 UNLOCKED ⭐</div>
+                <h2 class="card-title">Hey Luisa! 🎉</h2>
+                <p class="text-slate-200">Alles Liebe zu deinem 25. Geburtstag! Lass dich heute ordentlich feiern – und
+                    scroll mal nach unten... 👇</p>
+                <div class="scroll-hint">▼ SCROLL NACH UNTEN ▼</div>
+            </div>
+        </section>
+
+        <!-- SZENE 2: LISSABON -->
+        <section class="scene-section" id="sec-1" data-index="1">
+            <div class="voxel-card">
+                <h2 class="card-title">Willkommen in Lissabon</h2>
+                <p class="text-slate-200">Ich hoffe du hast eine richtig geile Zeit da und genießt dein
+                    Auslandssemester! Ich vermisse dich hier in Münster auf jeden Fall schon total. Du meintest ja, dass
+                    du vor Weihnachten vielleicht schon kurz nach Münster kommst – dann müssen wir unbedingt zusammen
+                    auf den Weihnachtsmarkt gehen! 🎄☕</p>
+            </div>
+        </section>
+
+        <!-- SZENE 3: LUISA AUF DEM BALKON (1. OBERGESCHOSS) -->
+        <section class="scene-section" id="sec-2" data-index="2">
+            <div class="voxel-card">
+                <h2 class="card-title">Auf deinem Balkon 🥂</h2>
+                <p class="text-slate-200">Sonnenbrille im Haar, Drink in der Hand – genau so stelle ich mir das gerade
+                    bei dir vor. 😂 Freue mich schon mega, dich spätestens an Weihnachten wiederzusehen!</p>
+            </div>
+        </section>
+
+        <!-- SZENE 4: SCHMUCK (GESCHENK 1) -->
+        <section class="scene-section" id="sec-3" data-index="3">
+            <div class="voxel-card">
+                <div class="card-badge">💎 GESCHENK 1 💍</div>
+                <h2 class="card-title">Zusammen Schmuck aussuchen</h2>
+                <p class="text-slate-200">Wenn du wieder hier bist, gehen wir zusammen einkaufen! Egal ob Ringe,
+                    Ohrringe oder eine Kette – du suchst dir einfach was Schönes aus und das geht auf mich.
+                </p>
+            </div>
+        </section>
+
+        <!-- SZENE 5: DURCH DEN BODEN & DIE KANALISATION -->
+        <section class="scene-section" id="sec-4" data-index="4">
+            <div class="voxel-card">
+                <h2 class="card-title">Aber warte mal... ⛏️</h2>
+                <p class="text-slate-200">Da war ja noch was! Wir graben uns noch eine Etage tiefer in den Untergrund.
+                    Hörst du schon den Bass von unten?! 🔊</p>
+            </div>
+        </section>
+
+        <!-- SZENE 6: UNDERGROUND RAVE (GESCHENK 2) -->
+        <section class="scene-section" id="sec-5" data-index="5">
+            <div class="voxel-card">
+                <div class="card-badge">🎧 GESCHENK 2 🔥</div>
+                <h2 class="card-title">Auflegen lernen! 🎶</h2>
+                <p class="text-slate-200">Ich bringe dir bei, wie man richtig auflegt – Beatmatching, Übergänge und du
+                    bestimmst komplett die Playlist. Machen wir dann direkt, wenn du in den Ferien wieder da bist! Ich
+                    hoffe, du bist jetzt schon ordentlich am Feiern (oder warst es schon) und hast den besten
+                    Geburtstag! 💛🎉</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        window.onload = function () {
+            // ============================================================================
+            // 1. THREE.JS SZENE, KAMERA & RENDERER INITIALISIEREN
+            // ============================================================================
+            const container = document.getElementById('webgl-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2('#bae6fd', 0.0035);
+
+            const camera = new THREE.PerspectiveCamera(
+                50,
+                window.innerWidth / window.innerHeight,
+                0.5,
+                450
+            );
+            camera.position.set(0, 96, 23.5);
+
+            const renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: 'high-performance'
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Minecraft-Style Cinematic Shader Tone Mapping
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.25;
+            container.appendChild(renderer.domElement);
+
+            // ============================================================================
+            // 1.1 MINECRAFT-STYLE DYNAMISCHER ATMOSPHÄREN-HIMMEL (SHADER-DOME)
+            // ============================================================================
+            const skyGeo = new THREE.SphereGeometry(280, 32, 16);
+            const skyMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    topColor: { value: new THREE.Color('#38bdf8') },
+                    bottomColor: { value: new THREE.Color('#bae6fd') },
+                    horizonColor: { value: new THREE.Color('#e0f2fe') },
+                    exponent: { value: 0.65 }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPosition.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 topColor;
+                    uniform vec3 bottomColor;
+                    uniform vec3 horizonColor;
+                    uniform float exponent;
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        vec3 nPos = normalize(vWorldPosition);
+                        float h = nPos.y;
+                        vec3 col;
+                        if (h >= 0.0) {
+                            float f = pow(h, exponent);
+                            col = mix(horizonColor, topColor, f);
+                        } else {
+                            float f = pow(abs(h), 0.5);
+                            col = mix(horizonColor, bottomColor, min(1.0, f * 2.0));
+                        }
+                        gl_FragColor = vec4(col, 1.0);
+                    }
+                `,
+                side: THREE.BackSide,
+                depthWrite: false
+            });
+            const skyDome = new THREE.Mesh(skyGeo, skyMat);
+            scene.add(skyDome);
+
+            // ============================================================================
+            // 2. PROZEDURALE TEXTUREN & GLOW-EFFEKTE (SONNEN-BLOOM & AZULEJOS)
+            // ============================================================================
+            function createPixelTexture(width, height, drawFn, repeatX = 1, repeatY = 1) {
+                const c = document.createElement('canvas');
+                c.width = width;
+                c.height = height;
+                const ctx = c.getContext('2d');
+                drawFn(ctx, width, height);
+                const tex = new THREE.CanvasTexture(c);
+                tex.magFilter = THREE.NearestFilter;
+                tex.minFilter = THREE.NearestFilter;
+                if (repeatX > 1 || repeatY > 1) {
+                    tex.wrapS = THREE.RepeatWrapping;
+                    tex.wrapT = THREE.RepeatWrapping;
+                    tex.repeat.set(repeatX, repeatY);
+                }
+                return tex;
+            }
+
+            // Weiche Radial-Glow-Textur für die leuchtende Sonne & Lichtkegel (Additive Blending)
+            function createGlowTexture(innerColor, midColor, outerColor) {
+                const c = document.createElement('canvas');
+                c.width = 256;
+                c.height = 256;
+                const ctx = c.getContext('2d');
+                const grad = ctx.createRadialGradient(128, 128, 4, 128, 128, 128);
+                grad.addColorStop(0.0, innerColor);
+                grad.addColorStop(0.35, midColor);
+                grad.addColorStop(0.7, outerColor);
+                grad.addColorStop(1.0, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 256, 256);
+                return new THREE.CanvasTexture(c);
+            }
+
+            // Edle, saubere Portugiesische Azulejo-Fliesen (Hochauflösende Kachel-Ornamentik ohne Moiré-Rauschen)
+            const azulejoCleanTex = createPixelTexture(32, 32, (ctx) => {
+                // Cremeweißer Keramik-Hintergrund
+                ctx.fillStyle = '#f8fbff';
+                ctx.fillRect(0, 0, 32, 32);
+                // Fugenrand
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(0, 0, 32, 1);
+                ctx.fillRect(0, 0, 1, 32);
+                // Äußerer Azurblauer Rahmen
+                ctx.fillStyle = '#1d4ed8';
+                ctx.fillRect(2, 2, 28, 2);
+                ctx.fillRect(2, 28, 28, 2);
+                ctx.fillRect(2, 2, 2, 28);
+                ctx.fillRect(28, 2, 2, 28);
+                // Eck-Blütenblätter in Hellblau
+                ctx.fillStyle = '#60a5fa';
+                ctx.fillRect(4, 4, 4, 4);
+                ctx.fillRect(24, 4, 4, 4);
+                ctx.fillRect(4, 24, 4, 4);
+                ctx.fillRect(24, 24, 4, 4);
+                // Zentrales Rauten-Medaillon
+                ctx.fillStyle = '#2563eb';
+                ctx.fillRect(12, 8, 8, 16);
+                ctx.fillRect(8, 12, 16, 8);
+                // Weißer Stern im Zentrum
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(13, 11, 6, 10);
+                ctx.fillRect(11, 13, 10, 6);
+                // Kobaltblauer Mittelpunkt
+                ctx.fillStyle = '#1e3a8a';
+                ctx.fillRect(14, 14, 4, 4);
+            }, 6, 4);
+            // Lineares Mipmapping für die Fliesen verhindert jedes Flimmern auf dem iPhone-Display!
+            azulejoCleanTex.minFilter = THREE.LinearMipMapLinearFilter;
+
+            // Calçada Portuguesa (Portugiesisches Wellen-Kopfsteinpflaster)
+            const cobbleTex = createPixelTexture(32, 32, (ctx) => {
+                ctx.fillStyle = '#e7e5dc';
+                ctx.fillRect(0, 0, 32, 32);
+                ctx.fillStyle = '#2b2d38';
+                for (let x = 0; x < 32; x += 2) {
+                    const yWave = Math.floor(Math.sin((x / 32) * Math.PI * 2) * 5);
+                    ctx.fillRect(x, (8 + yWave + 32) % 32, 2, 3);
+                    ctx.fillRect(x, (24 + yWave + 32) % 32, 2, 3);
+                }
+                ctx.fillStyle = '#cfccc0';
+                for (let i = 0; i < 32; i += 4) {
+                    ctx.fillRect(i, (i * 3) % 32, 1, 1);
+                }
+            }, 18, 5);
+
+            // Erdschichten- & Fundament-Textur
+            const earthTex = createPixelTexture(32, 32, (ctx) => {
+                ctx.fillStyle = '#3b2214';
+                ctx.fillRect(0, 0, 32, 32);
+                ctx.fillStyle = '#29160b';
+                ctx.fillRect(0, 6, 32, 5);
+                ctx.fillRect(0, 20, 32, 6);
+                ctx.fillStyle = '#52321e';
+                ctx.fillRect(4, 2, 8, 3);
+                ctx.fillRect(18, 14, 9, 4);
+                ctx.fillStyle = '#6c757d';
+                ctx.fillRect(8, 25, 6, 4);
+            }, 12, 6);
+
+            // Backstein-Textur für Kanalisation & Rave-Bunker
+            const brickTex = createPixelTexture(32, 32, (ctx) => {
+                ctx.fillStyle = '#140f26';
+                ctx.fillRect(0, 0, 32, 32);
+                ctx.fillStyle = '#251d42';
+                ctx.fillRect(1, 1, 14, 14);
+                ctx.fillRect(17, 1, 14, 14);
+                ctx.fillRect(0, 17, 7, 14);
+                ctx.fillRect(9, 17, 14, 14);
+                ctx.fillRect(25, 17, 7, 14);
+            }, 16, 8);
+
+            // Gold-Schild "JOIAS" für den Schmuckladen im Erdgeschoss
+            const joiasSignTex = createPixelTexture(256, 48, (ctx, w, h) => {
+                ctx.fillStyle = '#140c06';
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(3, 3, w - 6, h - 6);
+                ctx.fillStyle = '#ffd700';
+                ctx.font = 'bold 18px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('💎 JOIAS 💎', w / 2, h / 2 + 2);
+            });
+
+            // Neon-Schild "THE RAVE CAVE" für den Club
+            const raveSignTex = createPixelTexture(256, 48, (ctx, w, h) => {
+                ctx.fillStyle = '#070312';
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(4, 4, w - 8, h - 8);
+                ctx.fillStyle = '#ff007f';
+                ctx.font = 'bold 15px "Press Start 2P", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('THE RAVE CAVE', w / 2, h / 2 + 2);
+            });
+
+            // ============================================================================
+            // 3. VOXEL-BAUKASTEN & 3D-CHARAKTER-GENERATOR (LUISA & BRUDER)
+            // ============================================================================
+            const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+            const matCache = {};
+
+            function getMat(color, opts = {}) {
+                const key = color + JSON.stringify(opts);
+                if (!matCache[key]) {
+                    const isGold = color === '#ffd700' || color === '#ffbe0b';
+                    const isWhiteJewel = color === '#ffffff' && (opts.emissive || opts.metalness);
+                    const defaultRough = isGold ? 0.22 : (isWhiteJewel ? 0.1 : (opts.metalness && opts.metalness > 0.5 ? 0.22 : 0.65));
+                    const defaultMetal = isGold ? 0.92 : 0.08;
+
+                    matCache[key] = new THREE.MeshStandardMaterial({
+                        color: color,
+                        roughness: opts.roughness !== undefined ? opts.roughness : defaultRough,
+                        metalness: opts.metalness !== undefined ? opts.metalness : defaultMetal,
+                        emissive: opts.emissive ? new THREE.Color(opts.emissive) : new THREE.Color(0x000000),
+                        emissiveIntensity: opts.emissiveIntensity || 0,
+                        transparent: opts.transparent || false,
+                        opacity: opts.opacity !== undefined ? opts.opacity : 1.0
+                    });
+                }
+                return matCache[key];
+            }
+
+            function addVoxel(parent, x, y, z, sx, sy, sz, color, opts = {}) {
+                const mesh = new THREE.Mesh(unitBoxGeo, getMat(color, opts));
+                mesh.position.set(x, y, z);
+                mesh.scale.set(sx, sy, sz);
+                if (opts.castShadow !== false) mesh.castShadow = true;
+                if (opts.receiveShadow !== false) mesh.receiveShadow = true;
+                parent.add(mesh);
+                return mesh;
+            }
+
+            // 3D-Voxel-Modell von Luisa (mit braunen Haaren, Sonnenbrille, schwarzem Outfit, Tasche & Drink)
+            function createLuisa3D(options = {}) {
+                const group = new THREE.Group();
+                const isDJ = options.isDJ || false;
+
+                if (!isDJ) {
+                    // Braune Boots
+                    addVoxel(group, -0.42, 0.55, 0, 0.58, 1.1, 0.68, '#543220');
+                    addVoxel(group, 0.42, 0.55, 0, 0.58, 1.1, 0.68, '#543220');
+                    addVoxel(group, -0.42, 0.2, 0.15, 0.6, 0.4, 0.85, '#422617');
+                    addVoxel(group, 0.42, 0.2, 0.15, 0.6, 0.4, 0.85, '#422617');
+                    // Beine
+                    addVoxel(group, -0.42, 1.85, 0, 0.48, 1.6, 0.48, '#f3b692');
+                    addVoxel(group, 0.42, 1.85, 0, 0.48, 1.6, 0.48, '#f3b692');
+                    // Schwarzer Minirock & Bauchfrei-Streifen
+                    addVoxel(group, 0, 3.0, 0, 1.52, 1.05, 0.92, '#151519');
+                    addVoxel(group, 0, 3.65, 0, 1.32, 0.35, 0.78, '#f3b692');
+                }
+
+                // Schwarzes Crop-Top
+                addVoxel(group, 0, 4.35, 0, 1.5, 1.15, 0.86, '#151519');
+
+                // Braune Crossbody-Schultertasche mit goldenem Verschluss
+                if (!isDJ) {
+                    addVoxel(group, 0.05, 4.35, 0.44, 1.3, 0.16, 0.12, '#5e321e'); // Diagonaler Gurt
+                    addVoxel(group, 0.88, 3.25, 0.12, 0.42, 0.95, 0.78, '#5e321e'); // Tasche
+                    addVoxel(group, 0.88, 3.25, 0.52, 0.12, 0.18, 0.12, '#ffd700', { metalness: 0.9 }); // Goldschnalle
+                }
+
+                // Hals & Kopf
+                addVoxel(group, 0, 5.05, 0, 0.55, 0.35, 0.55, '#f3b692');
+                const head = new THREE.Group();
+                head.position.set(0, 5.85, 0);
+                group.add(head);
+
+                addVoxel(head, 0, 0, 0, 1.45, 1.45, 1.35, '#f4b895');
+                addVoxel(head, -0.35, 0.12, 0.69, 0.18, 0.22, 0.08, '#1a1a1a');
+                addVoxel(head, 0.35, 0.12, 0.69, 0.18, 0.22, 0.08, '#1a1a1a');
+                addVoxel(head, 0.0, -0.32, 0.69, 0.55, 0.18, 0.08, '#d62828');
+                addVoxel(head, 0.0, -0.30, 0.71, 0.35, 0.08, 0.08, '#ffffff');
+
+                // Goldene Statement-Ohrringe
+                addVoxel(head, -0.82, -0.18, 0.1, 0.18, 0.36, 0.28, '#ffd700', { metalness: 0.8, roughness: 0.2, emissive: '#ffd700', emissiveIntensity: 0.25 });
+                addVoxel(head, 0.82, -0.18, 0.1, 0.18, 0.36, 0.28, '#ffd700', { metalness: 0.8, roughness: 0.2, emissive: '#ffd700', emissiveIntensity: 0.25 });
+
+                // Lange braune Haare
+                addVoxel(head, 0, 0.68, -0.05, 1.58, 0.35, 1.5, '#6b3e26');
+                addVoxel(head, 0, -0.55, -0.65, 1.55, 2.3, 0.45, '#6b3e26');
+                addVoxel(head, -0.78, -0.45, -0.1, 0.32, 2.0, 1.1, '#7c482b');
+                addVoxel(head, 0.78, -0.35, -0.1, 0.32, 1.8, 1.1, '#7c482b');
+
+                // Sonnenbrille auf dem Kopf
+                addVoxel(head, 0, 0.88, 0.55, 1.42, 0.28, 0.25, '#111111');
+                addVoxel(head, -0.38, 0.88, 0.62, 0.48, 0.32, 0.18, '#2b0912');
+                addVoxel(head, 0.38, 0.88, 0.62, 0.48, 0.32, 0.18, '#2b0912');
+
+                if (isDJ) {
+                    addVoxel(head, -0.88, 0.05, 0.15, 0.25, 0.6, 0.55, '#00f0ff', { emissive: '#00f0ff', emissiveIntensity: 0.8 });
+                    addVoxel(head, 0.88, 0.05, 0.15, 0.25, 0.6, 0.55, '#00f0ff', { emissive: '#00f0ff', emissiveIntensity: 0.8 });
+                }
+
+                if (!isDJ) {
+                    addVoxel(group, 0.88, 4.15, -0.06, 0.36, 1.25, 0.36, '#f3b692'); // Rechter Arm sauber neben Tasche
+                    addVoxel(group, -0.92, 4.35, 0.15, 0.38, 0.9, 0.38, '#f3b692');
+                    addVoxel(group, -0.75, 3.95, 0.55, 0.38, 0.38, 0.85, '#f3b692');
+                    addVoxel(group, -0.75, 3.95, 0.65, 0.42, 0.42, 0.18, '#ffd700', { metalness: 0.8 });
+                    addVoxel(group, -0.65, 4.15, 1.05, 0.48, 0.72, 0.48, '#d8f8ff', { transparent: true, opacity: 0.8, roughness: 0.1 });
+                    addVoxel(group, -0.65, 4.10, 1.05, 0.36, 0.45, 0.36, '#ffffff');
+                    addVoxel(group, -0.60, 4.55, 1.05, 0.08, 0.38, 0.08, '#ff2a6d');
+                } else {
+                    addVoxel(group, -0.85, 4.15, 0.45, 0.38, 0.95, 0.85, '#f3b692');
+                    addVoxel(group, 0.85, 4.15, 0.45, 0.38, 0.95, 0.85, '#f3b692');
+                }
+
+                group.userData = { head };
+                return group;
+            }
+
+            // 3D-Voxel-Modell des Bruders
+            function createBrother3D(options = {}) {
+                const group = new THREE.Group();
+                const isDJ = options.isDJ || false;
+
+                if (!isDJ) {
+                    addVoxel(group, -0.42, 0.25, 0.1, 0.55, 0.5, 0.8, '#ffffff');
+                    addVoxel(group, 0.42, 0.25, 0.1, 0.55, 0.5, 0.8, '#ffffff');
+                    addVoxel(group, -0.42, 1.85, 0, 0.58, 2.7, 0.58, '#1e2f4d');
+                    addVoxel(group, 0.42, 1.85, 0, 0.58, 2.7, 0.58, '#1e2f4d');
+                }
+
+                addVoxel(group, 0, 4.05, 0, 1.68, 1.85, 0.95, '#2b59c3');
+                addVoxel(group, -1.02, 4.05, 0.15, 0.42, 1.5, 0.55, '#2b59c3');
+                addVoxel(group, 1.02, 4.05, 0.15, 0.42, 1.5, 0.55, '#2b59c3');
+
+                const head = new THREE.Group();
+                head.position.set(0, 5.75, 0);
+                group.add(head);
+                addVoxel(head, 0, 0, 0, 1.45, 1.45, 1.38, '#f3b692');
+                addVoxel(head, 0, 0.68, 0.05, 1.55, 0.45, 1.52, '#3d2516');
+                addVoxel(head, 0, 0.15, -0.62, 1.52, 1.1, 0.35, '#3d2516');
+                addVoxel(head, -0.35, 0.1, 0.71, 0.18, 0.22, 0.08, '#111');
+                addVoxel(head, 0.35, 0.1, 0.71, 0.18, 0.22, 0.08, '#111');
+                addVoxel(head, 0, -0.3, 0.71, 0.45, 0.14, 0.08, '#ffffff');
+
+                if (isDJ) {
+                    addVoxel(head, -0.86, 0.05, 0.15, 0.24, 0.58, 0.55, '#ff007f', { emissive: '#ff007f', emissiveIntensity: 0.8 });
+                    addVoxel(head, 0.86, 0.05, 0.15, 0.24, 0.58, 0.55, '#ff007f', { emissive: '#ff007f', emissiveIntensity: 0.8 });
+                }
+
+                group.userData = { head };
+                return group;
+            }
+
+            // ============================================================================
+            // 4. GLOBALE BELEUCHTUNG (MINECRAFT SHADER SONNENUNTERGANG)
+            // ============================================================================
+            const ambientLight = new THREE.AmbientLight('#fff5ea', 0.85);
+            scene.add(ambientLight);
+
+            // Warmes, goldenes Sonnenlicht mit weichen Schatten wie bei Minecraft-Shadern
+            const dirLight = new THREE.DirectionalLight('#ffb066', 1.45);
+            dirLight.position.set(25, 70, -35);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.bias = -0.0005;
+            scene.add(dirLight);
+
+            // ============================================================================
+            // 5. EINE EINZIGE, LÜCKENLOS VERBUNDENE 3D-WELT (Y = +95 BIS Y = -45)
+            // ============================================================================
+
+            // ----------------------------------------------------------------------------
+            // BEREICH 1: HOHER HIMMEL, WOLKENMEER & GEBURTSTAGSTORTE (Y = +95)
+            // ----------------------------------------------------------------------------
+            const skyGroup = new THREE.Group();
+            skyGroup.position.set(0, 95, 0);
+            scene.add(skyGroup);
+
+            // Dichtes Wolkenmeer direkt unter der Torte (verdeckt Lissabon & die Brücke zu 100% im Startbild!)
+            const cloudSeaCoords = [
+                { x: 0, y: -13, z: -6, sx: 44, sy: 9, sz: 34, col: '#ffffff' },
+                { x: -20, y: -14, z: 4, sx: 34, sy: 8, sz: 28, col: '#f4faff' },
+                { x: 20, y: -13.5, z: 2, sx: 36, sy: 8.5, sz: 30, col: '#f0f8ff' },
+                { x: -14, y: -11, z: -16, sx: 30, sy: 7.5, sz: 26, col: '#e8f4fc' },
+                { x: 16, y: -10.5, z: -14, sx: 32, sy: 7.5, sz: 25, col: '#ffffff' },
+                { x: 0, y: -11.5, z: 15, sx: 40, sy: 7.0, sz: 24, col: '#eaf5fe' },
+                { x: -32, y: -15, z: -12, sx: 34, sy: 8.0, sz: 32, col: '#ddecfa' },
+                { x: 32, y: -15, z: -10, sx: 34, sy: 8.0, sz: 32, col: '#ddecfa' },
+                { x: 0, y: -16, z: -26, sx: 48, sy: 10, sz: 36, col: '#e3effa' }
+            ];
+            cloudSeaCoords.forEach(cs => {
+                addVoxel(skyGroup, cs.x, cs.y, cs.z, cs.sx, cs.sy, cs.sz, cs.col, { roughness: 0.95 });
+            });
+
+            // Fliegende 3D-Wolken um die Torte und als nahtlose Tauch-Wolken nach Lissabon
+            const clouds = [];
+            const cloudCoords = [
+                { x: -16, y: 12, z: -10, scale: 1.45 },
+                { x: 18, y: 14, z: -14, scale: 1.65 },
+                { x: -9, y: 3, z: -4, scale: 1.1 },
+                { x: 11, y: 1, z: -6, scale: 1.2 },
+                { x: 0, y: 18, z: -22, scale: 2.2 },
+                { x: -24, y: -5, z: -12, scale: 1.5 },
+                { x: 24, y: -7, z: -10, scale: 1.4 },
+                { x: -8, y: -26, z: 2, scale: 1.25 }, // Übergangswolke beim Hinabtauchen
+                { x: 12, y: -36, z: -4, scale: 1.35 }, // Wolke über Lissabon
+                { x: -16, y: -48, z: -8, scale: 1.4 }
+            ];
+
+            cloudCoords.forEach((c, idx) => {
+                const cg = new THREE.Group();
+                cg.position.set(c.x, c.y, c.z);
+                cg.scale.setScalar(c.scale);
+                addVoxel(cg, 0, 0, 0, 5.5, 1.8, 3.2, '#ffffff', { roughness: 0.9 });
+                addVoxel(cg, -1.2, 1.1, 0.2, 3.2, 1.4, 2.5, '#ffffff', { roughness: 0.9 });
+                addVoxel(cg, 1.4, 0.8, -0.2, 2.6, 1.2, 2.4, '#f0f8ff', { roughness: 0.9 });
+                addVoxel(cg, 0, -0.9, 0, 4.8, 0.6, 2.8, '#cde8ff', { roughness: 0.9 });
+                skyGroup.add(cg);
+                clouds.push({ mesh: cg, baseX: c.x, speed: 0.35 + (idx % 3) * 0.2, offset: idx });
+            });
+
+            // 3D-Voxel-Geburtstagstorte im Himmel
+            const cakeGroup = new THREE.Group();
+            cakeGroup.position.set(0, -1.0, 2);
+            skyGroup.add(cakeGroup);
+            addVoxel(cakeGroup, 0, -1.6, 0, 5.4, 0.35, 5.4, '#ffd700', { metalness: 0.6, roughness: 0.3 });
+            addVoxel(cakeGroup, 0, -0.6, 0, 4.4, 1.7, 4.4, '#fff0f5');
+            addVoxel(cakeGroup, 0, 0.35, 0, 4.6, 0.45, 4.6, '#ff2a6d');
+            addVoxel(cakeGroup, 0, 1.25, 0, 3.1, 1.4, 3.1, '#fff8dc');
+            addVoxel(cakeGroup, 0, 1.95, 0, 3.3, 0.38, 3.3, '#00f0ff');
+            const candleFlames = [];
+            [-0.8, 0, 0.8].forEach((cx) => {
+                addVoxel(cakeGroup, cx, 2.55, 0, 0.28, 0.9, 0.28, '#ffffff');
+                const flame = addVoxel(cakeGroup, cx, 3.18, 0, 0.32, 0.42, 0.32, '#ffe600', {
+                    emissive: '#ff9e00',
+                    emissiveIntensity: 1.4
+                });
+                candleFlames.push(flame);
+            });
+
+            // Bunte 3D-Luftballons & Konfetti
+            const balloons3D = [];
+            const balloonColors = ['#ff2a6d', '#00f0ff', '#ffe600', '#00d26a', '#ff7b00', '#b5179e'];
+            for (let i = 0; i < 24; i++) {
+                const bg = new THREE.Group();
+                const col = balloonColors[i % balloonColors.length];
+                addVoxel(bg, 0, 0, 0, 1.4, 1.7, 1.4, col, { roughness: 0.25, metalness: 0.1 });
+                addVoxel(bg, 0, 0, 0, 1.7, 1.2, 1.2, col, { roughness: 0.25 });
+                addVoxel(bg, 0, 0, 0, 1.2, 1.2, 1.7, col, { roughness: 0.25 });
+                addVoxel(bg, -0.35, 0.35, 0.65, 0.28, 0.38, 0.15, '#ffffff');
+                addVoxel(bg, 0, -1.0, 0, 0.3, 0.2, 0.3, col);
+                addVoxel(bg, 0, -2.1, 0, 0.07, 2.0, 0.07, '#ffffff');
+
+                const bx = (Math.random() - 0.5) * 34;
+                const by = -20 + Math.random() * 36;
+                const bz = -14 + Math.random() * 22;
+                bg.position.set(bx, by, bz);
+                skyGroup.add(bg);
+                balloons3D.push({
+                    mesh: bg,
+                    baseX: bx,
+                    y: by,
+                    speed: 0.035 + Math.random() * 0.04,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+
+            const confetti3D = [];
+            for (let i = 0; i < 20; i++) {
+                const col = balloonColors[i % balloonColors.length];
+                const conf = addVoxel(
+                    skyGroup,
+                    (Math.random() - 0.5) * 30,
+                    (Math.random() - 0.5) * 32,
+                    -8 + Math.random() * 18,
+                    0.28, 0.28, 0.08,
+                    col,
+                    { emissive: col, emissiveIntensity: 0.4, castShadow: false }
+                );
+                confetti3D.push({
+                    mesh: conf,
+                    speedY: 0.03 + Math.random() * 0.04,
+                    rotSpeed: 0.04 + Math.random() * 0.06
+                });
+            }
+
+            // ----------------------------------------------------------------------------
+            // BEREICH 2: STRAHLENDE SONNE, WEITES TEJO-PANORAMA & BRÜCKE (Y = +28)
+            // ----------------------------------------------------------------------------
+            const panoramaGroup = new THREE.Group();
+            panoramaGroup.position.set(0, 28, 0);
+            scene.add(panoramaGroup);
+
+            // ECHTER SONNEN-GLOW & GOD-RAYS (Multi-Layer Additive Blending + Sonnenlicht)
+            const sunGroup = new THREE.Group();
+            sunGroup.position.set(0, 11, -78);
+            panoramaGroup.add(sunGroup);
+
+            // 1. Weiß-goldener glühender Sonnenkern (MeshBasicMaterial ignoriert Nebel/Schatten -> strahlt zu 100%!)
+            const sunCoreMat = new THREE.MeshBasicMaterial({ color: '#fffbe0', fog: false });
+            const sunInnerRingMat = new THREE.MeshBasicMaterial({ color: '#ffd000', fog: false });
+            const sunOuterRingMat = new THREE.MeshBasicMaterial({ color: '#ff7b00', fog: false });
+
+            const core1 = new THREE.Mesh(unitBoxGeo, sunCoreMat);
+            core1.scale.set(16, 16, 2);
+            sunGroup.add(core1);
+
+            const core2 = new THREE.Mesh(unitBoxGeo, sunInnerRingMat);
+            core2.scale.set(22, 18, 1.5);
+            core2.position.z = -0.5;
+            sunGroup.add(core2);
+
+            const core3 = new THREE.Mesh(unitBoxGeo, sunInnerRingMat);
+            core3.scale.set(18, 22, 1.5);
+            core3.position.z = -0.5;
+            sunGroup.add(core3);
+
+            const core4 = new THREE.Mesh(unitBoxGeo, sunOuterRingMat);
+            core4.scale.set(26, 26, 1);
+            core4.position.z = -1.0;
+            sunGroup.add(core4);
+
+            // 2. Große leuchtende Additive-Bloom-Sprites um die Sonne
+            const sunGlowTex = createGlowTexture(
+                'rgba(255, 252, 210, 1.0)',
+                'rgba(255, 165, 0, 0.65)',
+                'rgba(255, 60, 0, 0.18)'
+            );
+            const sunHaloSprite1 = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: sunGlowTex,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.95,
+                fog: false
+            }));
+            sunHaloSprite1.scale.set(75, 75, 1);
+            sunHaloSprite1.position.set(0, 0, 1);
+            sunGroup.add(sunHaloSprite1);
+
+            const sunHaloSprite2 = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: sunGlowTex,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.6,
+                fog: false
+            }));
+            sunHaloSprite2.scale.set(135, 95, 1);
+            sunHaloSprite2.position.set(0, -2, 2);
+            sunGroup.add(sunHaloSprite2);
+
+            // 3. Rotierende 3D-Sonnenstrahlen (God-Rays)
+            const sunRaysGroup = new THREE.Group();
+            sunRaysGroup.position.set(0, 0, -1.5);
+            sunGroup.add(sunRaysGroup);
+            const rayMat = new THREE.MeshBasicMaterial({
+                color: '#ffae00',
+                transparent: true,
+                opacity: 0.22,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                fog: false
+            });
+            for (let r = 0; r < 12; r++) {
+                const ray = new THREE.Mesh(unitBoxGeo, rayMat);
+                ray.scale.set(3.2, 68, 0.5);
+                ray.rotation.z = (r / 12) * Math.PI;
+                sunRaysGroup.add(ray);
+            }
+
+            // Minecraft-Style volumetrische Lichtschächte (God Rays)
+            const godRaysGroup = new THREE.Group();
+            godRaysGroup.position.set(0, 10, -55);
+            panoramaGroup.add(godRaysGroup);
+            const godRayMat = new THREE.MeshBasicMaterial({
+                color: '#ffc87a',
+                transparent: true,
+                opacity: 0.16,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            for (let g = 0; g < 7; g++) {
+                const shaftGeo = new THREE.PlaneGeometry(18 + g * 3, 95);
+                const shaft = new THREE.Mesh(shaftGeo, godRayMat);
+                shaft.position.set((g - 3) * 16, -18, g * 2.5);
+                shaft.rotation.z = 0.28 - (g - 3) * 0.08;
+                shaft.rotation.x = -0.32;
+                godRaysGroup.add(shaft);
+            }
+
+            // Schwebende goldene Sonnenuntergangs-Partikel / Embers (Minecraft Shader Motes)
+            const goldenMotes = [];
+            const moteGeo = new THREE.BoxGeometry(0.38, 0.38, 0.38);
+            const moteMat = new THREE.MeshBasicMaterial({
+                color: '#ffd166',
+                transparent: true,
+                opacity: 0.85
+            });
+            for (let m = 0; m < 55; m++) {
+                const mote = new THREE.Mesh(moteGeo, moteMat);
+                const mx = (Math.random() - 0.5) * 60;
+                const my = 4 + Math.random() * 26;
+                const mz = -22 + Math.random() * 32;
+                mote.position.set(mx, my, mz);
+                panoramaGroup.add(mote);
+                goldenMotes.push({
+                    mesh: mote,
+                    baseX: mx,
+                    baseY: my,
+                    baseZ: mz,
+                    speed: 0.45 + Math.random() * 0.75,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+
+            // Warmes Sonnenuntergangs-Punktlicht
+            const sunLight = new THREE.PointLight('#ff9e00', 2.2, 160);
+            sunLight.position.set(0, 12, -45);
+            panoramaGroup.add(sunLight);
+
+            // Weites Tejo-Flussbett (X = -110 bis +110 -> KEINE LEEREN SEITEN MEHR!)
+            const waterWaves = [];
+            addVoxel(panoramaGroup, 0, -6.5, -45, 220, 4, 80, '#241442', { roughness: 0.18, metalness: 0.5 });
+            for (let wz = -14; wz >= -74; wz -= 4.5) {
+                for (let wx = -75; wx <= 75; wx += 5.5) {
+                    const distCenter = Math.abs(wx);
+                    const isSunReflection = distCenter < 18;
+                    const waveCol = isSunReflection ? (distCenter < 7 ? '#fff3b0' : '#ff9e00') : '#432371';
+                    const wave = addVoxel(
+                        panoramaGroup,
+                        wx + (Math.abs(wz) % 9 === 0 ? 2.0 : 0),
+                        -4.3,
+                        wz,
+                        isSunReflection ? 4.2 : 3.0,
+                        0.45,
+                        1.5,
+                        waveCol,
+                        {
+                            emissive: isSunReflection ? '#ff9e00' : '#000000',
+                            emissiveIntensity: isSunReflection ? 0.95 : 0,
+                            roughness: 0.1,
+                            castShadow: false
+                        }
+                    );
+                    waterWaves.push({ mesh: wave, baseY: -4.3, phase: wx * 0.35 + wz * 0.25 });
+                }
+            }
+
+            // Weite Hügelkette am Südufer (Almada) links & rechts + Cristo Rei Statue
+            addVoxel(panoramaGroup, -48, -1.5, -62, 65, 9, 18, '#4a1d3f');
+            addVoxel(panoramaGroup, 48, -2.0, -64, 65, 8, 18, '#4a1d3f');
+            addVoxel(panoramaGroup, -26, 1.5, -58, 30, 11, 15, '#5c234c');
+            // Cristo Rei Denkmal
+            addVoxel(panoramaGroup, -24, 9.5, -56, 3.6, 6.5, 3.6, '#9c7a6b');
+            addVoxel(panoramaGroup, -24, 14.0, -56, 1.5, 3.6, 1.3, '#fff8f0', { emissive: '#ffbe0b', emissiveIntensity: 0.3 });
+            addVoxel(panoramaGroup, -24, 14.6, -56, 4.6, 0.75, 0.85, '#fff8f0', { emissive: '#ffbe0b', emissiveIntensity: 0.3 });
+
+            // Die Brücke "Ponte 25 de Abril" über die gesamte Panorama-Breite (X = -85 bis +85)
+            const bridgeGroup = new THREE.Group();
+            bridgeGroup.position.set(0, -4.5, -40);
+            panoramaGroup.add(bridgeGroup);
+            const bridgeRed = '#c92a2a';
+            const bridgeDark = '#801616';
+
+            // 4 Brückenpfeiler über die gesamte Breite (2 Haupttürme + 2 Seitentürme links/rechts)
+            [-54, -18, 18, 54].forEach((px) => {
+                const isMain = Math.abs(px) === 18;
+                const h = isMain ? 24 : 18;
+                addVoxel(bridgeGroup, px, h / 2 - 1, -1.5, 1.5, h, 1.5, bridgeRed);
+                addVoxel(bridgeGroup, px, h / 2 - 1, 1.5, 1.5, h, 1.5, bridgeRed);
+                addVoxel(bridgeGroup, px, 6.5, 0, 1.2, 1.0, 3.8, bridgeDark);
+                addVoxel(bridgeGroup, px, 13.5, 0, 1.2, 1.0, 3.8, bridgeDark);
+                if (isMain) addVoxel(bridgeGroup, px, 21.0, 0, 1.6, 1.2, 4.2, bridgeRed);
+            });
+
+            // Durchgehendes 3D-Fahrbahndeck
+            addVoxel(bridgeGroup, 0, 8.2, 0, 170, 1.4, 3.8, bridgeRed);
+            addVoxel(bridgeGroup, 0, 6.9, 0, 170, 0.65, 3.3, bridgeDark);
+
+            // Durchgehende Tragseile & vertikale Stahlseile von X = -78 bis +78
+            for (let bx = -78; bx <= 78; bx += 2.5) {
+                let norm = 0;
+                if (Math.abs(bx) <= 18) {
+                    norm = bx / 18;
+                } else if (Math.abs(bx) <= 54) {
+                    norm = ((Math.abs(bx) - 36) / 18);
+                } else {
+                    norm = (Math.abs(bx) - 54) / 24;
+                }
+                const cableY = 9.5 + Math.pow(norm, 2) * 11.5;
+
+                [-1.5, 1.5].forEach((bz) => {
+                    addVoxel(bridgeGroup, bx, cableY, bz, 2.3, 0.6, 0.6, bridgeRed, { castShadow: false });
+                    if (Math.abs(bx) % 5 < 2.5 && cableY > 9.6) {
+                        const hLen = cableY - 8.5;
+                        addVoxel(bridgeGroup, bx, 8.5 + hLen / 2, bz, 0.22, hLen, 0.22, bridgeDark, { castShadow: false });
+                    }
+                });
+            }
+
+            // Fahrende Autos mit leuchtenden Lichtern auf der Brücke
+            const bridgeCars = [];
+            for (let c = 0; c < 10; c++) {
+                const car = addVoxel(bridgeGroup, -70 + c * 15, 9.2, (c % 2 === 0 ? 0.9 : -0.9), 2.0, 0.75, 0.95, c % 2 === 0 ? '#ffe600' : '#ffffff', {
+                    emissive: c % 2 === 0 ? '#ffbe0b' : '#ff2a6d',
+                    emissiveIntensity: 0.95
+                });
+                bridgeCars.push({ mesh: car, dir: c % 2 === 0 ? 1 : -1, speed: 0.14 + (c % 3) * 0.04 });
+            }
+
+            // Dichte Lissaboner Altstadt-Hügel (Alfama/Bairro Alto) links, mittig und rechts im Mittelgrund (Z = -18 bis -8)
+            // Füllt das Bild nach links und rechts komplett mit Häusern, Zypressen und warmen Fenstern!
+            const hillHouses = [
+                { x: -38, y: -3, z: -18, w: 9, h: 14, col: '#f4a261' },
+                { x: -29, y: -2, z: -15, w: 8, h: 16, col: '#e9c46a' },
+                { x: -21, y: -4, z: -12, w: 8.5, h: 15, col: '#f28482' },
+                { x: -13, y: -3, z: -14, w: 8, h: 14, col: '#fdf0d5' },
+                { x: -5, y: -5, z: -13, w: 9, h: 12, col: '#f4a261' },
+                { x: 5, y: -4, z: -13, w: 9, h: 13, col: '#e9c46a' },
+                { x: 14, y: -3, z: -14, w: 8.5, h: 15, col: '#fdf0d5' },
+                { x: 22, y: -2, z: -12, w: 8, h: 16, col: '#f4a261' },
+                { x: 30, y: -3, z: -15, w: 9, h: 15, col: '#f28482' },
+                { x: 39, y: -4, z: -18, w: 10, h: 14, col: '#e9c46a' }
+            ];
+
+            hillHouses.forEach((hh, idx) => {
+                addVoxel(panoramaGroup, hh.x, hh.y, hh.z, hh.w, hh.h, 7, hh.col);
+                // Terrakotta-Ziegeldach
+                addVoxel(panoramaGroup, hh.x, hh.y + hh.h / 2 + 0.5, hh.z, hh.w + 0.6, 1.0, 7.6, '#c85a32');
+                addVoxel(panoramaGroup, hh.x, hh.y + hh.h / 2 + 1.3, hh.z, hh.w - 1.2, 0.9, 6.0, '#e07a5f');
+                // Leuchtende Abendfenster
+                for (let wy = hh.y - 1; wy < hh.y + hh.h / 2 - 1.5; wy += 3.2) {
+                    addVoxel(panoramaGroup, hh.x - 1.8, wy, hh.z + 3.55, 1.3, 1.8, 0.2, '#ffe66d', { emissive: '#ffbe0b', emissiveIntensity: 0.6 });
+                    addVoxel(panoramaGroup, hh.x + 1.8, wy, hh.z + 3.55, 1.3, 1.8, 0.2, '#ffe66d', { emissive: '#ffbe0b', emissiveIntensity: 0.6 });
+                }
+                // Mediterrane Zypressen-Bäume zwischen den Häusern
+                if (idx % 2 === 0) {
+                    addVoxel(panoramaGroup, hh.x + 4.2, hh.y + 3, hh.z + 2.5, 1.8, 7.5, 1.8, '#1b4332');
+                    addVoxel(panoramaGroup, hh.x + 4.2, hh.y + 7, hh.z + 2.5, 1.1, 2.5, 1.1, '#2d6a4f');
+                }
+            });
+
+            // ----------------------------------------------------------------------------
+            // BEREICH 3 & 4 VERBUNDEN: EIN ZUSAMMENHÄNGENDER ALTSTADT-HÄUSERBLOCK!
+            // - Oben auf der Dachterrasse (Y = +21): Die Straße mit der gelben Tram 28
+            // - 1. Obergeschoss (Y = +13): Luisas Wohnung & Azulejo-Balkon
+            // - Erdgeschoss (Y = -2): Der Schmuckladen "JOIAS" & Bürgersteig
+            // ----------------------------------------------------------------------------
+            const cityBlock = new THREE.Group();
+            cityBlock.position.set(0, 0, 0);
+            scene.add(cityBlock);
+
+            // 1. OBERE DACHTERRASSE / VIADUKT-STRASSE FÜR DIE TRAM 28 (Y = +20.5)
+            // Verbindet das Panorama oben lückenlos mit Luisas Hausfassade darunter!
+            addVoxel(cityBlock, 0, 20.4, -1.5, 90, 1.8, 9.5, '#525763'); // Durchgehende Straße
+            addVoxel(cityBlock, 0, 21.4, 2.8, 90, 0.8, 0.7, '#d8d4c8'); // Steinbalustrade vorne an der Dachkante
+            addVoxel(cityBlock, 0, 21.35, -0.8, 90, 0.15, 0.25, '#adb5bd'); // Schiene 1
+            addVoxel(cityBlock, 0, 21.35, 0.8, 90, 0.15, 0.25, '#adb5bd'); // Schiene 2
+            addVoxel(cityBlock, 0, 27.2, 0.0, 90, 0.1, 0.1, '#222222', { castShadow: false }); // Oberleitung
+
+            // Klassisches portugiesisches Terrakotta-Dachgesims direkt unter der Tram-Promenade (Y = +19.2)
+            addVoxel(cityBlock, 0, 19.3, -1.2, 27.5, 1.1, 8.2, '#c85a32');
+            addVoxel(cityBlock, 0, 18.5, -1.4, 27.0, 0.8, 7.8, '#fdf0d5'); // Edles Kalkstein-Kranzgesims
+
+            // Die gelbe 3D-Straßenbahn "Elétrico 28" fährt direkt oben über das Dachviadukt!
+            const tramGroup = new THREE.Group();
+            tramGroup.position.set(-14, 21.5, 0.0);
+            cityBlock.add(tramGroup);
+
+            addVoxel(tramGroup, 0, 0.4, 0, 8.0, 0.5, 2.7, '#111111');
+            [-2.5, 2.5].forEach((wx) => {
+                addVoxel(tramGroup, wx, 0.2, 1.25, 1.1, 0.7, 0.3, '#222222');
+                addVoxel(tramGroup, wx, 0.2, -1.25, 1.1, 0.7, 0.3, '#222222');
+            });
+            // Strahlend leuchtendes Lissabon-Gelb für den Wagenkasten
+            addVoxel(tramGroup, 0, 1.5, 0, 8.6, 1.8, 3.0, '#ffd000', { emissive: '#ffd000', emissiveIntensity: 0.25 });
+            addVoxel(tramGroup, 0, 2.45, 0, 8.62, 0.18, 3.02, '#c1121f'); // Rote Zierlinie
+            addVoxel(tramGroup, 0, 3.05, 0, 8.2, 1.2, 2.9, '#ffd000', { emissive: '#ffd000', emissiveIntensity: 0.2 });
+            addVoxel(tramGroup, 0, 3.75, 0, 8.6, 0.35, 3.1, '#f8f9fa'); // Weißes Dach
+            addVoxel(tramGroup, -0.5, 4.75, 0, 0.15, 1.6, 0.15, '#ffd000'); // Stromabnehmer
+            addVoxel(tramGroup, 0.2, 5.45, 0, 1.2, 0.15, 0.4, '#111111');
+            // Front- & Rückscheinwerfer
+            addVoxel(tramGroup, 4.35, 1.3, 0, 0.25, 0.55, 0.55, '#ffffff', { emissive: '#fff3b0', emissiveIntensity: 1.6 });
+            addVoxel(tramGroup, -4.35, 1.3, 0, 0.25, 0.55, 0.55, '#ff0033', { emissive: '#ff0033', emissiveIntensity: 1.2 });
+            // Erleuchtete Seitenfenster
+            for (let fx = -2.7; fx <= 2.7; fx += 1.8) {
+                addVoxel(tramGroup, fx, 3.05, 1.48, 1.25, 0.95, 0.1, '#fff8db', { emissive: '#ffe66d', emissiveIntensity: 0.65 });
+                addVoxel(tramGroup, fx, 3.05, -1.48, 1.25, 0.95, 0.1, '#fff8db', { emissive: '#ffe66d', emissiveIntensity: 0.65 });
+            }
+
+            // 2. NACHBARHÄUSER LINKS & RECHTS (Sorgen dafür, dass der Hintergrund beim Balkon & Laden 100% gefüllt ist!)
+            // Linkes Nachbarhaus (Warmes Terrakotta-Rosa, X = -25 bis -13, Y = -6 bis +20)
+            addVoxel(cityBlock, -23.5, 7.0, -3.2, 21, 26, 7, '#e07a5f');
+            addVoxel(cityBlock, -23.5, 19.5, -3.0, 21.5, 1.2, 7.5, '#9e2a2b');
+            // Rechtes Nachbarhaus (Pastell-Minzgrün, X = +13 bis +25, Y = -6 bis +20)
+            addVoxel(cityBlock, 23.5, 7.0, -3.2, 21, 26, 7, '#81b29a');
+            addVoxel(cityBlock, 23.5, 19.5, -3.0, 21.5, 1.2, 7.5, '#c85a32');
+
+            // Detailreiche Fenster, kleine Balkone & Straßenlaternen an den Nachbarhäusern
+            [-26, -18, 18, 26].forEach((nx) => {
+                [12.5, 4.0].forEach((ny) => {
+                    addVoxel(cityBlock, nx, ny, 0.35, 3.4, 4.8, 0.3, '#fdf0d5'); // Fensterrahmen
+                    addVoxel(cityBlock, nx, ny, 0.48, 2.6, 4.0, 0.2, '#ffe66d', { emissive: '#ffbe0b', emissiveIntensity: 0.45 });
+                    addVoxel(cityBlock, nx, ny - 2.4, 0.8, 3.8, 0.4, 1.0, '#d8d4c8'); // Fensterbank
+                    addVoxel(cityBlock, nx, ny - 1.9, 1.0, 3.2, 0.6, 0.6, '#2d6a4f'); // Blumenkasten
+                });
+            });
+
+            // 3. HAUPTGEBÄUDE MITTE: 1. OBERGESCHOSS (LUISAS AZULEJO-FASSADE & BALKON, Y = +6.5 bis +18.5)
+            // Saubere Azulejo-Fliesenwand mit Aussparung für das Zimmer hinter der Balkontür
+            const azulejoMat = new THREE.MeshStandardMaterial({
+                map: azulejoCleanTex,
+                roughness: 0.3,
+                metalness: 0.05
+            });
+            // Fassade links neben dem Zimmer
+            const upperFacadeLeft = new THREE.Mesh(new THREE.BoxGeometry(9.8, 12.2, 6.0), azulejoMat);
+            upperFacadeLeft.position.set(-7.85, 12.4, -4.5);
+            upperFacadeLeft.receiveShadow = true;
+            cityBlock.add(upperFacadeLeft);
+
+            // Fassade rechts neben dem Zimmer
+            const upperFacadeRight = new THREE.Mesh(new THREE.BoxGeometry(9.8, 12.2, 6.0), azulejoMat);
+            upperFacadeRight.position.set(7.85, 12.4, -4.5);
+            upperFacadeRight.receiveShadow = true;
+            cityBlock.add(upperFacadeRight);
+
+            // Sturz / Fassade über der Balkontür
+            const upperFacadeTop = new THREE.Mesh(new THREE.BoxGeometry(6.0, 1.8, 6.0), azulejoMat);
+            upperFacadeTop.position.set(0, 17.6, -4.5);
+            upperFacadeTop.receiveShadow = true;
+            cityBlock.add(upperFacadeTop);
+
+            // Plastische Kalkstein-Eckpfeiler (Quoins) links und rechts an Luisas Hauswand
+            for (let qy = 7.0; qy <= 18.0; qy += 1.4) {
+                const qW = (Math.round(qy * 10) % 2 === 0) ? 1.8 : 1.2;
+                addVoxel(cityBlock, -12.2, qy, -1.4, qW, 1.2, 0.5, '#fdf0d5');
+                addVoxel(cityBlock, 12.2, qy, -1.4, qW, 1.2, 0.5, '#fdf0d5');
+            }
+
+            // Zwei seitliche Sprossenfenster im 1. OG links und rechts neben Luisas Balkon
+            [-8.2, 8.2].forEach((wx) => {
+                addVoxel(cityBlock, wx, 13.0, -1.4, 3.6, 6.2, 0.45, '#fdf0d5');
+                addVoxel(cityBlock, wx, 13.0, -1.25, 2.6, 5.2, 0.3, '#1d2d44');
+                addVoxel(cityBlock, wx, 13.0, -1.1, 2.5, 0.18, 0.2, '#fdf0d5');
+                addVoxel(cityBlock, wx, 10.0, -0.9, 4.0, 0.5, 1.1, '#e5e5dc');
+            });
+
+            // Kalkstein-Türrahmen um die Balkontür (Pfosten links & rechts, Sturz oben – MITTE KOMPLETT OFFEN!)
+            addVoxel(cityBlock, -2.85, 12.8, -1.35, 0.55, 9.0, 0.65, '#fdf0d5'); // Pfosten links
+            addVoxel(cityBlock, 2.85, 12.8, -1.35, 0.55, 9.0, 0.65, '#fdf0d5');  // Pfosten rechts
+            addVoxel(cityBlock, 0, 17.1, -1.35, 6.2, 0.65, 0.65, '#fdf0d5');      // Sturz oben
+
+            // =========================================================================
+            // LUISAS ZIMMER HINTER DEM BALKON (Liebevoll eingerichtet & gemütlich beleuchtet)
+            // =========================================================================
+            const roomGroup = new THREE.Group();
+            cityBlock.add(roomGroup);
+
+            // Wände, Boden & Decke des Zimmers
+            addVoxel(roomGroup, 0, 8.2, -4.5, 6.0, 0.3, 6.0, '#c68b59');      // Heller Eichen-Parkettboden
+            addVoxel(roomGroup, 0, 16.7, -4.5, 6.0, 0.3, 6.0, '#faedcd');     // Decke
+            addVoxel(roomGroup, 0, 12.45, -7.4, 5.9, 8.2, 0.3, '#fdf6e2');    // Rückwand (Warmes Cremeweiß)
+            addVoxel(roomGroup, -2.9, 12.45, -4.5, 0.3, 8.2, 5.9, '#faedcd'); // Linke Innenwand
+            addVoxel(roomGroup, 2.9, 12.45, -4.5, 0.3, 8.2, 5.9, '#faedcd');  // Rechte Innenwand
+
+            // Weiße Fußleisten am Boden
+            addVoxel(roomGroup, 0, 8.45, -7.2, 5.8, 0.25, 0.15, '#ffffff');
+            addVoxel(roomGroup, -2.75, 8.45, -4.5, 0.15, 0.25, 5.6, '#ffffff');
+            addVoxel(roomGroup, 2.75, 8.45, -4.5, 0.15, 0.25, 5.6, '#ffffff');
+
+            // Kuscheliger Boho-Teppich auf dem Parkettboden
+            addVoxel(roomGroup, 0.1, 8.38, -4.2, 3.4, 0.05, 4.0, '#e76f51');  // Terrakotta-Basis
+            addVoxel(roomGroup, 0.1, 8.41, -4.2, 2.8, 0.05, 3.2, '#2a9d8f');  // Türkis-Muster
+            addVoxel(roomGroup, 0.1, 8.44, -4.2, 1.8, 0.05, 2.0, '#f4a261');  // Sonnengelber Innenläufer
+
+            // Gemütliches Bett / Daybed links im Zimmer (mit weicher weißer Daunendecke)
+            addVoxel(roomGroup, -1.6, 9.0, -5.2, 2.3, 0.7, 3.8, '#8b5a2b');   // Bettrahmen Massivholz
+            addVoxel(roomGroup, -1.6, 11.0, -7.05, 2.3, 2.2, 0.25, '#724218'); // Hohes Holz-Kopfteil
+            addVoxel(roomGroup, -1.6, 9.6, -5.2, 2.15, 0.65, 3.6, '#f8f9fa');  // Weiße Daunendecke
+            addVoxel(roomGroup, -1.6, 9.85, -3.9, 2.2, 0.2, 1.2, '#f4a261');  // Gestreifte Kuscheldecke am Fußende
+            // Fluffige Kissen am Kopfende
+            addVoxel(roomGroup, -2.0, 10.3, -6.6, 0.9, 0.5, 0.7, '#ffb4a2');  // Rosé-Kissen
+            addVoxel(roomGroup, -1.2, 10.3, -6.6, 0.9, 0.5, 0.7, '#e9c46a');  // Senfgelbes Kissen
+            addVoxel(roomGroup, -1.6, 10.1, -6.1, 0.7, 0.45, 0.5, '#264653'); // Zierkissen Petrol
+
+            // Nachttisch mit Lampe & Foto rechts neben dem Bett
+            addVoxel(roomGroup, 0.2, 9.1, -6.5, 0.85, 1.1, 0.85, '#9c6644');  // Holztischchen
+            addVoxel(roomGroup, 0.2, 9.75, -6.5, 0.2, 0.35, 0.2, '#ffd700', { metalness: 0.8 }); // Lampenfuß Messing
+            addVoxel(roomGroup, 0.2, 10.2, -6.5, 0.55, 0.45, 0.55, '#ffe66d', { emissive: '#ffbe0b', emissiveIntensity: 0.9 }); // Schirm
+            addVoxel(roomGroup, 0.2, 9.9, -6.95, 0.35, 0.45, 0.08, '#ffd700'); // Goldener Fotorahmen
+            addVoxel(roomGroup, 0.2, 9.9, -6.9, 0.25, 0.35, 0.05, '#ff007f', { emissive: '#ff007f', emissiveIntensity: 0.4 }); // Foto
+
+            // Große Zimmerpflanze (Monstera) im Terrakotta-Übertopf (rechts vorne)
+            addVoxel(roomGroup, 2.1, 9.0, -3.6, 1.0, 1.2, 1.0, '#e07a5f');    // Terrakotta-Topf
+            addVoxel(roomGroup, 2.1, 9.65, -3.6, 0.85, 0.1, 0.85, '#2b1d14'); // Blumenerde
+            // Ausladende grüne Voxel-Blätter
+            addVoxel(roomGroup, 2.1, 10.3, -3.6, 0.2, 1.2, 0.2, '#2d6a4f');   // Stamm
+            addVoxel(roomGroup, 1.8, 11.1, -3.4, 0.8, 0.15, 0.7, '#40916c');  // Blatt 1
+            addVoxel(roomGroup, 2.3, 11.5, -3.8, 0.75, 0.15, 0.85, '#52b788'); // Blatt 2
+            addVoxel(roomGroup, 2.0, 12.0, -3.5, 0.9, 0.15, 0.8, '#2d6a4f');  // Blatt 3 oben
+
+            // Schwebendes Bücherregal an der rechten Zimmerwand
+            addVoxel(roomGroup, 2.65, 12.8, -5.2, 0.4, 0.12, 2.2, '#a68a72'); // Wandboard
+            addVoxel(roomGroup, 2.6, 13.3, -5.8, 0.3, 0.85, 0.2, '#e63946');  // Buch Rot
+            addVoxel(roomGroup, 2.6, 13.2, -5.55, 0.3, 0.7, 0.22, '#457b9d'); // Buch Blau
+            addVoxel(roomGroup, 2.6, 13.4, -5.3, 0.3, 0.95, 0.2, '#f4a261');  // Buch Gelb
+            addVoxel(roomGroup, 2.6, 13.1, -4.9, 0.32, 0.4, 0.35, '#2a9d8f'); // Mini-Sukkulente im Topf
+
+            // Stilvolles Kunstbild & Boho-Spiegel an der Rückwand
+            addVoxel(roomGroup, 0.3, 14.2, -7.22, 2.2, 1.8, 0.1, '#ffd700', { metalness: 0.8 }); // Goldrahmen
+            addVoxel(roomGroup, 0.3, 14.2, -7.16, 1.9, 1.5, 0.06, '#ff9e00', { emissive: '#f77f00', emissiveIntensity: 0.3 }); // Sonnenuntergang
+            addVoxel(roomGroup, 0.3, 13.7, -7.14, 1.9, 0.5, 0.06, '#0077b6'); // Tejo-Welle
+            addVoxel(roomGroup, -1.8, 14.5, -7.22, 1.1, 1.1, 0.08, '#d4a373'); // Boho-Wandteller
+
+            // Elegante weiße Leinen-Vorhänge links & rechts an der Balkontür
+            addVoxel(roomGroup, -2.15, 12.8, -1.8, 0.65, 8.2, 0.65, '#fefae0', { roughness: 0.9 });
+            addVoxel(roomGroup, 2.15, 12.8, -1.8, 0.65, 8.2, 0.65, '#fefae0', { roughness: 0.9 });
+            addVoxel(roomGroup, 0, 16.65, -1.75, 5.0, 0.12, 0.12, '#ffd700', { metalness: 0.8 }); // Gardinenstange Messing
+
+            // Deckenleuchte & warmes Zimmerlicht
+            addVoxel(roomGroup, 0, 16.3, -4.5, 0.6, 0.4, 0.6, '#ffd700', { metalness: 0.8 });
+            addVoxel(roomGroup, 0, 15.9, -4.5, 0.7, 0.5, 0.7, '#fff3b0', { emissive: '#ffbe0b', emissiveIntensity: 1.0 });
+
+            // Dedizierte warme Lichtquelle im Zimmer (strahlt nach draußen auf Luisa!)
+            const roomPointLight = new THREE.PointLight('#ffe4a0', 1.8, 18);
+            roomPointLight.position.set(0, 14.8, -4.2);
+            cityBlock.add(roomPointLight);
+
+            // Grüne 3D-Holzfensterläden links & rechts an Luisas Balkontür
+            [-4.2, 4.2].forEach((sx, idx) => {
+                const shutter = new THREE.Group();
+                shutter.position.set(sx, 13.0, -1.05);
+                shutter.rotation.y = idx === 0 ? 0.25 : -0.25;
+                cityBlock.add(shutter);
+                addVoxel(shutter, 0, 0, 0, 1.9, 8.8, 0.35, '#2a9d8f');
+                for (let ly = -3.6; ly <= 3.6; ly += 0.9) {
+                    addVoxel(shutter, 0, ly, 0.2, 1.5, 0.3, 0.12, '#1f776d');
+                }
+            });
+
+            // 3D-Steinbalkon im 1. OG (Y = +8.2)
+            addVoxel(cityBlock, 0, 8.2, 0.9, 11.4, 0.8, 5.0, '#fdf0d5');
+            addVoxel(cityBlock, -3.8, 7.2, 0.4, 1.1, 1.4, 3.8, '#e5e5dc'); // Tragkonsole L
+            addVoxel(cityBlock, 3.8, 7.2, 0.4, 1.1, 1.4, 3.8, '#e5e5dc'); // Tragkonsole R
+
+            // Schmiedeeisernes Balkongeländer + Blumenkästen
+            const ironCol = '#1b1b22';
+            addVoxel(cityBlock, 0, 11.2, 3.15, 11.0, 0.28, 0.28, ironCol);
+            addVoxel(cityBlock, -5.35, 11.2, 0.9, 0.28, 0.28, 4.8, ironCol);
+            addVoxel(cityBlock, 5.35, 11.2, 0.9, 0.28, 0.28, 4.8, ironCol);
+            for (let gx = -5.2; gx <= 5.2; gx += 0.85) {
+                addVoxel(cityBlock, gx, 9.8, 3.15, 0.16, 2.8, 0.16, ironCol);
+            }
+            for (let gz = -1.2; gz <= 2.8; gz += 0.85) {
+                addVoxel(cityBlock, -5.35, 9.8, gz, 0.16, 2.8, 0.16, ironCol);
+                addVoxel(cityBlock, 5.35, 9.8, gz, 0.16, 2.8, 0.16, ironCol);
+            }
+
+            [-3.0, 3.0].forEach((fx) => {
+                addVoxel(cityBlock, fx, 10.1, 3.55, 3.8, 0.95, 0.85, '#7f4f24');
+                addVoxel(cityBlock, fx, 10.65, 3.55, 3.6, 0.45, 0.75, '#2d6a4f');
+                addVoxel(cityBlock, fx - 1.0, 10.95, 3.6, 0.6, 0.6, 0.6, '#ff006e');
+                addVoxel(cityBlock, fx, 11.05, 3.7, 0.7, 0.7, 0.7, '#ffbe0b');
+                addVoxel(cityBlock, fx + 1.0, 10.95, 3.6, 0.6, 0.6, 0.6, '#3a86ff');
+            });
+
+            // Luisa steht oben auf ihrem Balkon!
+            const luisaBalcony = createLuisa3D({ isDJ: false });
+            luisaBalcony.position.set(0.3, 8.6, 1.35);
+            luisaBalcony.scale.setScalar(1.05);
+            cityBlock.add(luisaBalcony);
+
+            const balconyLight = new THREE.PointLight('#ffdf9e', 1.1, 22);
+            balconyLight.position.set(2, 14, 7);
+            cityBlock.add(balconyLight);
+
+            // 4. NAHTLOSER ARCHITEKTUR-ÜBERGANG ZWISCHEN 1. OG UND ERDGESCHOSS (Y = +5.5 bis +6.8)
+            addVoxel(cityBlock, 0, 6.2, -1.1, 26.5, 1.1, 1.2, '#fdf0d5');
+            addVoxel(cityBlock, 0, 5.5, -1.3, 26.0, 0.6, 0.9, '#e5e5dc');
+
+            // 5. ERDGESCHOSS DESSELBEN HAUSES (Y = -5.5 bis +5.5): DER JUWELIERLADEN "JOIAS"
+            // Saubere Naturstein- & Ockerfassade mit getrennter Schaufensteröffnung (NULL Z-Fighting!)
+            addVoxel(cityBlock, -10.6, 0.0, -4.5, 4.3, 11.5, 6.0, '#f4d58d'); // Fassade links
+            addVoxel(cityBlock, 8.3, 0.0, -4.5, 9.0, 11.5, 6.0, '#f4d58d');   // Fassade rechts (um die Ladentür)
+            addVoxel(cityBlock, -2.7, 4.6, -4.5, 11.8, 2.3, 6.0, '#f4d58d');  // Sturz über Schaufenster
+            addVoxel(cityBlock, -2.7, -4.6, -4.5, 11.8, 2.3, 6.0, '#f4d58d'); // Sockelmauerwerk unter Schaufenster
+
+            // Rustizierte Kalkstein-Pfeiler links & rechts am Erdgeschoss
+            for (let ry = -4.5; ry <= 4.5; ry += 1.5) {
+                addVoxel(cityBlock, -11.5, ry, -1.3, 2.6, 1.2, 0.6, '#e5e5dc');
+                addVoxel(cityBlock, 11.5, ry, -1.3, 2.6, 1.2, 0.6, '#e5e5dc');
+            }
+
+            // Dunkler Edelholz- & Messing-Rahmen der "JOIAS"-Boutique
+            addVoxel(cityBlock, 0, 4.6, -1.3, 20.5, 2.2, 1.6, '#3d2516');   // Oberer Schild-Träger
+            addVoxel(cityBlock, -9.2, -0.8, -1.3, 2.0, 9.6, 1.6, '#3d2516'); // Linke Säule
+            addVoxel(cityBlock, 3.8, -0.8, -1.3, 1.6, 9.6, 1.6, '#3d2516'); // Mittlere Säule
+            addVoxel(cityBlock, 9.2, -0.8, -1.3, 2.0, 9.6, 1.6, '#3d2516'); // Rechte Säule
+            addVoxel(cityBlock, -2.7, -4.4, -1.2, 11.8, 2.2, 1.9, '#4a2c1a'); // Schaufenster-Brüstung
+            addVoxel(cityBlock, -2.7, -3.25, -1.15, 11.8, 0.3, 0.3, '#ffd700', { metalness: 0.95, roughness: 0.15 });
+
+            // Glasklares Schaufensterglas (entspiegelt, kristallklar)
+            addVoxel(cityBlock, -2.7, 0.1, -1.25, 11.4, 6.4, 0.08, '#d8f3dc', {
+                transparent: true,
+                opacity: 0.18,
+                roughness: 0.05,
+                metalness: 0.2
+            });
+
+            // Gold-Schild "💎 JOIAS 💎" direkt unter Luisas Balkon
+            const signMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(13.2, 1.9, 0.45),
+                new THREE.MeshStandardMaterial({ map: joiasSignTex, roughness: 0.25, metalness: 0.5 })
+            );
+            signMesh.position.set(-2.2, 4.6, -0.4);
+            cityBlock.add(signMesh);
+
+            // Gestreifte 3D-Markise über dem Schaufenster
+            const awningGroup = new THREE.Group();
+            awningGroup.position.set(-2.5, 3.1, -0.4);
+            awningGroup.rotation.x = 0.32;
+            cityBlock.add(awningGroup);
+            for (let ax = -6.5; ax <= 6.5; ax += 1.3) {
+                const stripeCol = Math.round(ax * 10) % 2 === 0 ? '#1b4332' : '#eef8f0';
+                addVoxel(awningGroup, ax, 0, 1.1, 1.32, 0.4, 3.2, stripeCol);
+            }
+
+            // Tiefes Schaufenster-Innere mit Mahagoni, cremefarbener Wand & Königs-Samt
+            addVoxel(cityBlock, -2.7, -0.1, -6.0, 11.8, 6.8, 0.4, '#241410'); // Mahagoni-Rückwand
+            addVoxel(cityBlock, -2.7, 1.8, -5.9, 10.5, 2.8, 0.2, '#fff8dc');   // Helle Akzentwand
+            addVoxel(cityBlock, -2.7, 2.4, -5.75, 5.0, 1.0, 0.15, '#ffd700', { metalness: 0.95, emissive: '#ffd700', emissiveIntensity: 0.4 }); // Gold-Wappen
+            addVoxel(cityBlock, -2.7, 3.4, -3.7, 11.8, 0.3, 4.6, '#fdf0d5');   // Decke
+            addVoxel(cityBlock, -8.5, -0.1, -3.7, 0.3, 6.8, 4.6, '#fdf0d5');  // Wand links
+            addVoxel(cityBlock, 3.1, -0.1, -3.7, 0.3, 6.8, 4.6, '#fdf0d5');   // Wand rechts
+            addVoxel(cityBlock, -2.7, -3.2, -3.7, 11.8, 0.25, 4.6, '#580c1f'); // Königsroter Samtboden
+
+            // Decken-Einbaustrahler im Schaufenster
+            [-6.0, -2.7, 0.5].forEach((lx) => {
+                addVoxel(cityBlock, lx, 3.25, -2.8, 0.8, 0.2, 0.8, '#ffd700', { metalness: 0.9 });
+                addVoxel(cityBlock, lx, 3.12, -2.8, 0.5, 0.08, 0.5, '#fff3b0', { emissive: '#fff3b0', emissiveIntensity: 1.4 });
+            });
+
+            // -------------------------------------------------------------------------
+            // SPEKTAKULÄRE SCHMUCK-PRÄSENTATION IM SCHAUFENSTER
+            // -------------------------------------------------------------------------
+            const jewels3D = [];
+            const sparkles = [];
+
+            // 1. ZENTRALES HIGHLIGHT: ROTIERENDE SHOWCASE-VITRINE MIT RIESIGEM SOLITÄR-DIAMANT
+            addVoxel(cityBlock, -2.7, -2.4, -3.0, 2.8, 1.5, 2.8, '#14141c'); // Schwarzer Marmorsockel
+            addVoxel(cityBlock, -2.7, -1.6, -3.0, 3.0, 0.18, 3.0, '#ffd700', { metalness: 0.95, roughness: 0.1 });
+
+            // Transparente Glas-Schauvitrine
+            addVoxel(cityBlock, -2.7, -0.4, -3.0, 2.4, 2.2, 2.4, '#e0f7fa', {
+                transparent: true,
+                opacity: 0.15,
+                roughness: 0.05,
+                metalness: 0.1
+            });
+            addVoxel(cityBlock, -2.7, 0.72, -3.0, 2.5, 0.12, 2.5, '#ffd700', { metalness: 0.95 }); // Vitrinen-Dach Messing
+
+            // Der rotierende Masterpiece-Diamantring in der Vitrine
+            const centerJewel = new THREE.Group();
+            centerJewel.position.set(-2.7, -0.4, -3.0);
+            cityBlock.add(centerJewel);
+            // Massiver Gold-Ringreif
+            addVoxel(centerJewel, 0, -0.2, 0, 0.65, 0.65, 0.25, '#ffd700', { metalness: 0.98, roughness: 0.1 });
+            addVoxel(centerJewel, 0, 0.22, 0, 0.45, 0.2, 0.45, '#ffd700', { metalness: 0.98 }); // 4-Krappen-Fassung
+            // Funkelnder Solitär-Brillant (Facetten-Voxel mit prismatischem Glanz)
+            addVoxel(centerJewel, 0, 0.45, 0, 0.42, 0.42, 0.42, '#ffffff', {
+                roughness: 0.05,
+                metalness: 0.2,
+                emissive: '#e0f7fa',
+                emissiveIntensity: 1.3
+            });
+            addVoxel(centerJewel, 0, 0.52, 0, 0.22, 0.22, 0.22, '#00f5d4', {
+                emissive: '#00f5d4',
+                emissiveIntensity: 1.5
+            });
+            centerJewel.userData = { baseY: -0.4, isSpin: true };
+            jewels3D.push(centerJewel);
+
+            // 2. SCHMUCK-BÜSTE MIT GOLD-COLLIER (Mitte links)
+            const necklaceBust = new THREE.Group();
+            necklaceBust.position.set(-4.8, -1.2, -3.2);
+            cityBlock.add(necklaceBust);
+            addVoxel(necklaceBust, 0, -0.4, 0, 1.4, 1.2, 0.9, '#111116'); // Samtbüste
+            addVoxel(necklaceBust, 0, 0.3, 0, 0.7, 0.6, 0.7, '#111116');   // Hals
+            // Feingliedrige Goldkette
+            addVoxel(necklaceBust, 0, 0.35, 0.42, 0.9, 0.12, 0.12, '#ffd700', { metalness: 0.95, emissive: '#ffd700', emissiveIntensity: 0.4 });
+            addVoxel(necklaceBust, -0.42, 0.15, 0.25, 0.12, 0.4, 0.38, '#ffd700', { metalness: 0.95 });
+            addVoxel(necklaceBust, 0.42, 0.15, 0.25, 0.12, 0.4, 0.38, '#ffd700', { metalness: 0.95 });
+            // Smaragd-Anhänger
+            addVoxel(necklaceBust, 0, 0.02, 0.46, 0.35, 0.42, 0.25, '#00f5d4', {
+                metalness: 0.3,
+                roughness: 0.1,
+                emissive: '#00f5d4',
+                emissiveIntensity: 1.2
+            });
+            necklaceBust.userData = { baseY: -1.2, isSlow: true };
+            jewels3D.push(necklaceBust);
+
+            // 3. PRÄSENTATION LINKS (x = -6.8): OHRRING-BAUM & EDELSTEINE
+            addVoxel(cityBlock, -6.8, -2.5, -3.0, 2.2, 1.2, 2.2, '#580c1f'); // Roter Samtsockel
+            addVoxel(cityBlock, -6.8, -1.85, -3.0, 2.4, 0.15, 2.4, '#ffd700', { metalness: 0.95 });
+
+            // T-Ständer mit Creolen
+            const earringStand = new THREE.Group();
+            earringStand.position.set(-6.8, -1.0, -3.0);
+            cityBlock.add(earringStand);
+            addVoxel(earringStand, 0, -0.7, 0, 0.6, 0.12, 0.6, '#ffd700', { metalness: 0.95 });
+            addVoxel(earringStand, 0, 0, 0, 0.1, 1.4, 0.1, '#ffd700', { metalness: 0.95 });
+            addVoxel(earringStand, 0, 0.7, 0, 1.3, 0.1, 0.1, '#ffd700', { metalness: 0.95 });
+            [-0.5, 0.5].forEach(ex => {
+                addVoxel(earringStand, ex, 0.35, 0, 0.28, 0.45, 0.12, '#ffd700', { metalness: 0.98 });
+                addVoxel(earringStand, ex, 0.08, 0, 0.18, 0.18, 0.18, '#00f5d4', { emissive: '#00f5d4', emissiveIntensity: 1.0 });
+            });
+            earringStand.userData = { baseY: -1.0, isSway: true };
+            jewels3D.push(earringStand);
+
+            // Funkelnde Edelstein-Kollektion auf Spiegeltellern (Rubin, Saphir, Smaragd)
+            const gemGroup = new THREE.Group();
+            gemGroup.position.set(-6.8, -1.75, -2.0);
+            cityBlock.add(gemGroup);
+            addVoxel(gemGroup, -0.65, 0.12, 0, 0.32, 0.26, 0.32, '#e63946', { emissive: '#ff0055', emissiveIntensity: 1.1 }); // Rubin
+            addVoxel(gemGroup, 0, 0.15, 0, 0.35, 0.3, 0.35, '#0077b6', { emissive: '#00b4d8', emissiveIntensity: 1.15 });   // Saphir
+            addVoxel(gemGroup, 0.65, 0.12, 0, 0.32, 0.26, 0.32, '#06d6a0', { emissive: '#2ec4b6', emissiveIntensity: 1.1 });  // Smaragd
+            gemGroup.userData = { baseY: -1.75, isHover: true };
+            jewels3D.push(gemGroup);
+
+            // 4. PRÄSENTATION RECHTS (x = -0.6): LUXUSUHR & TENNIS-ARMBAND
+            addVoxel(cityBlock, -0.6, -2.5, -3.0, 2.2, 1.2, 2.2, '#580c1f'); // Roter Samtsockel
+            addVoxel(cityBlock, -0.6, -1.85, -3.0, 2.4, 0.15, 2.4, '#ffd700', { metalness: 0.95 });
+
+            // Goldene Luxusuhr auf Samtkissen
+            const watchDisplay = new THREE.Group();
+            watchDisplay.position.set(-0.6, -1.3, -3.0);
+            cityBlock.add(watchDisplay);
+            addVoxel(watchDisplay, 0, -0.2, 0, 1.2, 0.5, 1.0, '#111118'); // Kissen
+            addVoxel(watchDisplay, 0, 0.18, 0, 0.55, 0.18, 0.55, '#ffd700', { metalness: 0.98, roughness: 0.12 }); // Uhrgehäuse
+            addVoxel(watchDisplay, 0, 0.28, 0, 0.4, 0.05, 0.4, '#ffffff', { emissive: '#ffffff', emissiveIntensity: 0.4 }); // Zifferblatt
+            addVoxel(watchDisplay, 0, 0.05, 0.42, 0.34, 0.3, 0.15, '#ffd700', { metalness: 0.98 }); // Band
+            addVoxel(watchDisplay, 0, 0.05, -0.42, 0.34, 0.3, 0.15, '#ffd700', { metalness: 0.98 });
+            watchDisplay.userData = { baseY: -1.3, isPulse: true };
+            jewels3D.push(watchDisplay);
+
+            // Glitzerndes Tennis-Armband
+            const braceletGroup = new THREE.Group();
+            braceletGroup.position.set(-0.6, -1.75, -2.0);
+            cityBlock.add(braceletGroup);
+            addVoxel(braceletGroup, 0, 0.08, 0, 1.2, 0.12, 0.6, '#ffd700', { metalness: 0.98 });
+            for (let bx = -0.48; bx <= 0.48; bx += 0.14) {
+                addVoxel(braceletGroup, bx, 0.16, 0, 0.09, 0.09, 0.15, '#ffffff', { emissive: '#00f0ff', emissiveIntensity: 0.9 });
+            }
+            braceletGroup.userData = { baseY: -1.75, isGlow: true };
+            jewels3D.push(braceletGroup);
+
+            // 5. FUNKELNDE SPARKLE-STERNCHEN
+            [
+                { x: -2.7, y: 0.9, z: -2.4, s: 0.22, c: '#ffffff' },
+                { x: -4.8, y: 0.3, z: -2.6, s: 0.18, c: '#ffd700' },
+                { x: -6.5, y: -0.2, z: -2.4, s: 0.18, c: '#00f5d4' },
+                { x: -0.6, y: -0.1, z: -2.4, s: 0.2, c: '#ffd700' }
+            ].forEach(sp => {
+                const spGroup = new THREE.Group();
+                spGroup.position.set(sp.x, sp.y, sp.z);
+                cityBlock.add(spGroup);
+                addVoxel(spGroup, 0, 0, 0, sp.s * 2.2, sp.s * 0.4, sp.s * 0.4, sp.c, { emissive: sp.c, emissiveIntensity: 1.3 });
+                addVoxel(spGroup, 0, 0, 0, sp.s * 0.4, sp.s * 2.2, sp.s * 0.4, sp.c, { emissive: sp.c, emissiveIntensity: 1.3 });
+                sparkles.push(spGroup);
+            });
+
+            // Showcase-Spotlights
+            const shopSpot1 = new THREE.PointLight('#fff3b0', 2.2, 14);
+            shopSpot1.position.set(-2.7, 1.8, -2.4);
+            cityBlock.add(shopSpot1);
+
+            const shopSpot2 = new THREE.PointLight('#ffd700', 1.8, 12);
+            shopSpot2.position.set(-5.5, 0.8, -2.2);
+            cityBlock.add(shopSpot2);
+
+            // Ladentür rechts
+            addVoxel(cityBlock, 6.5, -1.1, -1.6, 3.6, 8.2, 0.5, '#593825');
+            addVoxel(cityBlock, 6.5, -0.1, -1.5, 2.5, 4.8, 0.6, '#a8dadc', { transparent: true, opacity: 0.75 });
+
+            // Durchgehender Portugiesischer Bürgersteig (Calçada Portuguesa) bei Y = -6.0
+            const sidewalkMat = new THREE.MeshStandardMaterial({ map: cobbleTex, roughness: 0.75 });
+            const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(72, 1.4, 13), sidewalkMat);
+            sidewalk.position.set(0, -6.0, 2.0);
+            sidewalk.receiveShadow = true;
+            cityBlock.add(sidewalk);
+            addVoxel(cityBlock, 0, -5.8, 8.6, 72, 1.6, 0.6, '#adb5bd'); // Bordsteinkante
+
+            // Klassische Lissaboner Straßenlaternen links & rechts
+            [-13.5, 13.5].forEach((lx) => {
+                addVoxel(cityBlock, lx, -1.2, 3.2, 0.45, 8.5, 0.45, '#1a1a22');
+                addVoxel(cityBlock, lx, 3.3, 3.2, 1.3, 1.5, 1.3, '#ffe66d', { emissive: '#ffbe0b', emissiveIntensity: 1.2 });
+            });
+
+            const shopLight = new THREE.PointLight('#ffe082', 1.4, 22);
+            shopLight.position.set(-2.5, 1.5, 2.5);
+            cityBlock.add(shopLight);
+
+            // Luisa & Julius stehen vor dem Schaufenster (zentriert, beste Sicht auf Schmuck!)
+            const luisaShop = createLuisa3D({ isDJ: false });
+            luisaShop.position.set(-2.8, -5.3, 1.8);
+            luisaShop.rotation.y = Math.PI * 0.82;
+            luisaShop.scale.setScalar(0.96);
+            cityBlock.add(luisaShop);
+
+            const brotherShop = createBrother3D({ isDJ: false });
+            brotherShop.position.set(2.4, -5.3, 1.8);
+            brotherShop.rotation.y = -Math.PI * 0.82;
+            brotherShop.scale.setScalar(0.96);
+            cityBlock.add(brotherShop);
+
+            // ----------------------------------------------------------------------------
+            // BEREICH 5: NAHTLOSER ERDSCHNITT & KANALISATION DIREKT UNTER DEM PFLASTER (Y = -6.7 bis -25)
+            // ----------------------------------------------------------------------------
+            const undergroundGroup = new THREE.Group();
+            undergroundGroup.position.set(0, 0, 0);
+            scene.add(undergroundGroup);
+
+            // Direkt unter dem Bürgersteig (Y = -6.7) beginnt lückenlos das Erdreich & Fundament!
+            const earthMat = new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.9 });
+
+            // Linke, rechte und hintere Erdwand (von Y = -6.7 bis Y = -25.5 -> NULL LÜCKE!)
+            const backEarth = new THREE.Mesh(new THREE.BoxGeometry(64, 19.5, 6), earthMat);
+            backEarth.position.set(0, -16.2, -7.5);
+            undergroundGroup.add(backEarth);
+
+            const leftEarth = new THREE.Mesh(new THREE.BoxGeometry(18, 19.5, 16), earthMat);
+            leftEarth.position.set(-19.5, -16.2, -0.5);
+            undergroundGroup.add(leftEarth);
+
+            const rightEarth = new THREE.Mesh(new THREE.BoxGeometry(18, 19.5, 16), earthMat);
+            rightEarth.position.set(19.5, -16.2, -0.5);
+            undergroundGroup.add(rightEarth);
+
+            // Dicke Querschnitt-Schicht direkt unter den Pflastersteinen (Fundament-Mauerwerk bei Y = -7.2)
+            addVoxel(undergroundGroup, 0, -7.1, 2.0, 64, 0.9, 12.8, '#495057');
+
+            // Großer 3D-Kanalisations- & Katakomben-Gewölbebogen in der Mitte (Y = -10 bis -24)
+            for (let archAngle = 0; archAngle <= Math.PI; archAngle += Math.PI / 8) {
+                const ax = Math.cos(archAngle) * 8.2;
+                const ay = Math.sin(archAngle) * 5.2 - 13.5;
+                addVoxel(undergroundGroup, ax, ay, -2.5, 2.2, 1.8, 6.5, '#495057');
+            }
+            addVoxel(undergroundGroup, -8.2, -19.5, -2.5, 2.2, 12.0, 6.5, '#495057');
+            addVoxel(undergroundGroup, 8.2, -19.5, -2.5, 2.2, 12.0, 6.5, '#495057');
+
+            // Pulsierende 3D-Neon-Stromleitungen, die vom Haus bis direkt in die Decke des Rave-Clubs führen
+            const powerPulses = [];
+            [-4.2, 4.2].forEach((cx, idx) => {
+                addVoxel(undergroundGroup, cx, -16.2, -4.2, 0.45, 19.0, 0.45, '#161622');
+                for (let p = 0; p < 3; p++) {
+                    const col = idx === 0 ? '#00f0ff' : '#ff007f';
+                    const pulseMesh = addVoxel(undergroundGroup, cx, -9 - p * 6, -3.9, 0.65, 2.2, 0.65, col, {
+                        emissive: col,
+                        emissiveIntensity: 1.3,
+                        castShadow: false
+                    });
+                    powerPulses.push({ mesh: pulseMesh, speed: 0.16 + idx * 0.04 });
+                }
+            });
+
+            // Animierte 3D-Voxel-Maulwürfe auf eigenen Stein-Nischen/Podesten (Zentriert im Bild!)
+            const moles3D = [];
+            const moleData = [
+                { x: -2.0, y: -13.5, z: -0.6, rotY: 0.55, hasLight: true },
+                { x: 2.0, y: -16.5, z: -0.6, rotY: -0.55, hasGold: true },
+                { x: -1.6, y: -20.0, z: -0.6, rotY: 0.45, isWave: true }
+            ];
+
+            moleData.forEach((mp, idx) => {
+                // Stein-Podest in der Tunnelwand, auf dem der Maulwurf sicher sitzt
+                addVoxel(undergroundGroup, mp.x, mp.y - 0.95, mp.z, 2.4, 0.35, 2.0, '#343a40');
+
+                const mole = new THREE.Group();
+                mole.position.set(mp.x, mp.y, mp.z);
+                mole.rotation.y = mp.rotY;
+                undergroundGroup.add(mole);
+
+                // Maulwurf-Körper & Schnauze
+                addVoxel(mole, 0, 0, 0, 1.5, 1.5, 1.5, '#6f452b');
+                addVoxel(mole, 0, 0.1, 0.82, 0.7, 0.45, 0.35, '#ffcad4');
+                // Augen
+                addVoxel(mole, -0.32, 0.38, 0.78, 0.18, 0.18, 0.12, '#111111');
+                addVoxel(mole, 0.32, 0.38, 0.78, 0.18, 0.18, 0.12, '#111111');
+
+                if (mp.hasLight) {
+                    // Bergarbeiter-Helm mit leuchtender Stirnlampe
+                    addVoxel(mole, 0, 0.82, 0, 1.3, 0.35, 1.3, '#fca311');
+                    addVoxel(mole, 0, 0.65, 0.78, 0.35, 0.35, 0.22, '#fff3b0', {
+                        emissive: '#ffd700',
+                        emissiveIntensity: 1.2
+                    });
+                } else if (mp.hasGold) {
+                    // Hält funkelnden Goldnugget in den Pfoten
+                    addVoxel(mole, 0, -0.2, 0.85, 0.45, 0.45, 0.45, '#ffd700', {
+                        metalness: 0.9,
+                        emissive: '#ffbe0b',
+                        emissiveIntensity: 0.8
+                    });
+                }
+
+                moles3D.push({ group: mole, baseY: mp.y, baseRotY: mp.rotY, phase: idx * 2.1 });
+            });
+
+            // Solider antiker Kanalisationsboden & Steinfundament (trennt Kanalisation sauber vom Club)
+            addVoxel(undergroundGroup, 0, -24.8, -1.0, 36, 1.8, 14, '#2b2d42');
+            // Historischer runder Gully-Schacht mit Gusseisen-Gitter (geheimer Durchgang)
+            addVoxel(undergroundGroup, 0, -23.85, -1.0, 4.4, 0.2, 4.4, '#141419');
+            for (let gx = -1.6; gx <= 1.6; gx += 0.8) {
+                addVoxel(undergroundGroup, gx, -23.7, -1.0, 0.18, 0.15, 4.0, '#3a3a45');
+            }
+
+            // ----------------------------------------------------------------------------
+            // BEREICH 6: THE RAVE CAVE - DIREKT UNTER DEM KANALISATIONS-SCHACHT (Y = -25 bis -44)
+            // ----------------------------------------------------------------------------
+            const raveScene = new THREE.Group();
+            raveScene.position.set(0, -36, 0);
+            scene.add(raveScene);
+
+            // Decken-Gewölbe des Clubs schließt bei Y = -24.5 direkt an den Tunnel-Schacht oben an!
+            addVoxel(raveScene, -14, 11.2, 0, 18, 2.0, 24, '#191330');
+            addVoxel(raveScene, 14, 11.2, 0, 18, 2.0, 24, '#191330');
+
+            const bunkerMat = new THREE.MeshStandardMaterial({ map: brickTex, roughness: 0.8 });
+            const raveBackWall = new THREE.Mesh(new THREE.BoxGeometry(52, 26, 4), bunkerMat);
+            raveBackWall.position.set(0, 1, -15);
+            raveScene.add(raveBackWall);
+
+            // Neon-Gewölbebögen im Club
+            [-12, -6, 0, 6].forEach((az, i) => {
+                const archCol = i % 2 === 0 ? '#00f0ff' : '#ff007f';
+                addVoxel(raveScene, -15, 1.5, az, 1.2, 20, 1.2, '#191330');
+                addVoxel(raveScene, 15, 1.5, az, 1.2, 20, 1.2, '#191330');
+                addVoxel(raveScene, 0, 11.0, az, 31, 1.2, 1.2, '#191330');
+                addVoxel(raveScene, -14.2, 1.5, az, 0.3, 18.5, 0.3, archCol, { emissive: archCol, emissiveIntensity: 1.0, castShadow: false });
+                addVoxel(raveScene, 14.2, 1.5, az, 0.3, 18.5, 0.3, archCol, { emissive: archCol, emissiveIntensity: 1.0, castShadow: false });
+            });
+
+            // Leuchtendes Neon-Schild "THE RAVE CAVE"
+            const raveSign = new THREE.Mesh(
+                new THREE.BoxGeometry(16, 3.0, 0.5),
+                new THREE.MeshStandardMaterial({
+                    map: raveSignTex,
+                    emissive: '#ffffff',
+                    emissiveMap: raveSignTex,
+                    emissiveIntensity: 0.95
+                })
+            );
+            raveSign.position.set(0, 7.8, -12.0);
+            raveScene.add(raveSign);
+
+            // Club-Boden mit leuchtenden 3D-Dancefloor-Kacheln
+            addVoxel(raveScene, 0, -8.5, -2, 52, 2, 30, '#080514');
+            const danceTiles = [];
+            for (let dx = -9; dx <= 9; dx += 3) {
+                for (let dz = -3; dz <= 9; dz += 3) {
+                    const tCol = (Math.abs(dx + dz) % 6 === 0) ? '#00f0ff' : '#7209b7';
+                    const tile = addVoxel(raveScene, dx, -7.4, dz, 2.7, 0.25, 2.7, tCol, {
+                        emissive: tCol,
+                        emissiveIntensity: 0.45,
+                        castShadow: false
+                    });
+                    danceTiles.push({ mesh: tile, phase: dx * 0.5 + dz * 0.7 });
+                }
+            }
+
+            // DJ-Bühne & Leuchtendes DJ-Pult
+            addVoxel(raveScene, 0, -6.5, -6.8, 16, 2.0, 6.5, '#141128');
+            const djBooth = new THREE.Group();
+            djBooth.position.set(0, -3.5, -5.2);
+            raveScene.add(djBooth);
+
+            addVoxel(djBooth, 0, 0, 0, 10.5, 3.6, 2.6, '#191636');
+            addVoxel(djBooth, 0, 1.85, 0.1, 10.9, 0.3, 2.9, '#00f0ff', { emissive: '#00f0ff', emissiveIntensity: 1.1 });
+            addVoxel(djBooth, 0, -1.75, 0.1, 10.9, 0.25, 2.8, '#ff007f', { emissive: '#ff007f', emissiveIntensity: 1.0 });
+
+            const turntables = [];
+            [-2.8, 2.8].forEach((tx, idx) => {
+                addVoxel(djBooth, tx, 2.05, 0, 2.4, 0.22, 2.0, '#2b2d42');
+                const platter = new THREE.Group();
+                platter.position.set(tx, 2.22, 0);
+                djBooth.add(platter);
+                addVoxel(platter, 0, 0, 0, 1.65, 0.12, 1.65, '#111111');
+                const labelCol = idx === 0 ? '#ff007f' : '#00f0ff';
+                addVoxel(platter, 0, 0.08, 0, 0.6, 0.1, 0.6, labelCol, { emissive: labelCol, emissiveIntensity: 0.9 });
+                addVoxel(platter, 0.55, 0.09, 0, 0.25, 0.1, 0.15, '#ffffff');
+                turntables.push(platter);
+            });
+            addVoxel(djBooth, 0, 2.08, 0, 2.2, 0.28, 2.0, '#111118');
+            addVoxel(djBooth, -0.5, 2.25, 0.2, 0.2, 0.15, 1.2, '#ffe600', { emissive: '#ffe600', emissiveIntensity: 0.8 });
+            addVoxel(djBooth, 0.5, 2.25, -0.2, 0.2, 0.15, 1.2, '#00d26a', { emissive: '#00d26a', emissiveIntensity: 0.8 });
+
+            const eqBars = [];
+            for (let e = 0; e < 13; e++) {
+                const eqCol = e % 3 === 0 ? '#ff007f' : (e % 3 === 1 ? '#00f0ff' : '#ffe600');
+                const bar = addVoxel(djBooth, -4.5 + e * 0.75, -0.6, 1.38, 0.52, 1.8, 0.22, eqCol, {
+                    emissive: eqCol,
+                    emissiveIntensity: 1.1,
+                    castShadow: false
+                });
+                eqBars.push({ mesh: bar, idx: e });
+            }
+
+            // Subwoofer-Türme links & rechts
+            const speakerWoofers = [];
+            [-10.2, 10.2].forEach((sx) => {
+                addVoxel(raveScene, sx, -2.5, -5.8, 4.2, 10.0, 4.0, '#121224');
+                const topCone = addVoxel(raveScene, sx, 0.4, -3.7, 2.4, 2.4, 0.4, '#00f0ff', { emissive: '#00f0ff', emissiveIntensity: 0.7 });
+                addVoxel(raveScene, sx, 0.4, -3.5, 1.1, 1.1, 0.4, '#111111');
+                const subCone = addVoxel(raveScene, sx, -4.0, -3.7, 3.0, 3.0, 0.4, '#ff007f', { emissive: '#ff007f', emissiveIntensity: 0.7 });
+                addVoxel(raveScene, sx, -4.0, -3.5, 1.4, 1.4, 0.4, '#111111');
+                speakerWoofers.push(topCone, subCone);
+            });
+
+            // Luisa & ihr Bruder hinter dem DJ-Pult
+            const luisaDJ = createLuisa3D({ isDJ: true });
+            luisaDJ.position.set(-2.1, -5.4, -6.8);
+            luisaDJ.scale.setScalar(1.08);
+            raveScene.add(luisaDJ);
+
+            const brotherDJ = createBrother3D({ isDJ: true });
+            brotherDJ.position.set(2.1, -5.4, -6.8);
+            brotherDJ.scale.setScalar(1.08);
+            raveScene.add(brotherDJ);
+
+            // Volumetrische 3D-Laser-Strahlen
+            const lasers3D = [];
+            const laserColors = ['#00f0ff', '#ff007f', '#39ff14', '#ffe600', '#b5179e'];
+            const coneGeo = new THREE.CylinderGeometry(0.08, 4.5, 25, 12, 1, true);
+            coneGeo.translate(0, -12.5, 0);
+
+            for (let l = 0; l < 6; l++) {
+                const lMat = new THREE.MeshBasicMaterial({
+                    color: laserColors[l % laserColors.length],
+                    transparent: true,
+                    opacity: 0.2,
+                    side: THREE.DoubleSide,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+                const cone = new THREE.Mesh(coneGeo, lMat);
+                cone.position.set(-10 + l * 4, 10.5, -5);
+                raveScene.add(cone);
+                lasers3D.push({ mesh: cone, idx: l });
+            }
+
+            // Feiernde Raver-Crowd
+            const ravers3D = [];
+            const raverPalette = ['#ff007f', '#00f0ff', '#7209b7', '#3a86ff', '#ffbe0b', '#00d26a'];
+            for (let r = 0; r < 24; r++) {
+                const rg = new THREE.Group();
+                const rx = -11 + (r % 8) * 3.1 + (Math.random() - 0.5) * 1.2;
+                const rz = -0.5 + Math.floor(r / 8) * 3.8 + (Math.random() - 0.5) * 1.2;
+                rg.position.set(rx, -7.3, rz);
+                rg.rotation.y = Math.PI + (Math.random() - 0.5) * 0.5;
+
+                const shirtCol = raverPalette[r % raverPalette.length];
+                addVoxel(rg, 0, 1.3, 0, 1.15, 1.8, 0.75, shirtCol);
+                addVoxel(rg, 0, 2.75, 0, 0.95, 0.95, 0.95, '#e0ac8b');
+                addVoxel(rg, 0, 3.25, -0.05, 1.02, 0.35, 1.02, '#1a162b');
+                addVoxel(rg, -0.75, 2.5, 0, 0.32, 1.4, 0.32, shirtCol);
+                addVoxel(rg, 0.75, 2.6, 0, 0.32, 1.5, 0.32, shirtCol);
+
+                if (r % 2 === 0) {
+                    const glowCol = r % 4 === 0 ? '#00f0ff' : '#39ff14';
+                    addVoxel(rg, 0.75, 3.6, 0, 0.18, 0.95, 0.18, glowCol, {
+                        emissive: glowCol,
+                        emissiveIntensity: 1.4,
+                        castShadow: false
+                    });
+                }
+
+                raveScene.add(rg);
+                ravers3D.push({ group: rg, baseY: -7.3, phase: r * 0.65 });
+            }
+
+            const raveLight1 = new THREE.PointLight('#00f0ff', 1.8, 32);
+            raveLight1.position.set(-7, 5, 2);
+            raveScene.add(raveLight1);
+
+            const raveLight2 = new THREE.PointLight('#ff007f', 1.8, 32);
+            raveLight2.position.set(7, 5, 2);
+            raveScene.add(raveLight2);
+
+            // ============================================================================
+            // 6. NAHTLOSE KAMERA-CHOREOGRAFIE (INKL. ZOOM-IN AUF BALKON & ZOOM-OUT AM HAUS)
+            // ============================================================================
+            // 6. NAHTLOSE KAMERA-CHOREOGRAFIE & MINECRAFT-SHADER-FARBEN
+            // ============================================================================
+            const keyframes = [
+                // 0: Hoher Himmel (nur Torte & Wolkenmeer, KEINE Brücke / Stadt sichtbar!)
+                {
+                    camX: 0, camY: 96.0, camZ: 22.0, lookX: 0, lookY: 94.0, lookZ: -1.0,
+                    skyTop: new THREE.Color('#38bdf8'),
+                    skyHorizon: new THREE.Color('#e0f2fe'),
+                    skyBottom: new THREE.Color('#bae6fd'),
+                    fogCol: new THREE.Color('#bae6fd'),
+                    amb: 0.95
+                },
+                // 1: Lissabon Panorama, Magischer Sonnenuntergang, Brücke & Tram 28 (Fokussiert auf die Tram oben!)
+                {
+                    camX: 0, camY: 23.2, camZ: 17.5, lookX: 0, lookY: 22.8, lookZ: -3.0,
+                    skyTop: new THREE.Color('#2d1558'),
+                    skyHorizon: new THREE.Color('#ff5400'),
+                    skyBottom: new THREE.Color('#ffbe0b'),
+                    fogCol: new THREE.Color('#ff7b47'),
+                    amb: 0.85
+                },
+                // 2: Nah-Zoom auf Luisa auf ihrem Balkon (1. OG - nur Luisa & ihr Balkon!)
+                {
+                    camX: 0, camY: 13.0, camZ: 16.0, lookX: 0, lookY: 12.0, lookZ: 0,
+                    skyTop: new THREE.Color('#381b5c'),
+                    skyHorizon: new THREE.Color('#f4a261'),
+                    skyBottom: new THREE.Color('#e76f51'),
+                    fogCol: new THREE.Color('#f4a261'),
+                    amb: 0.78
+                },
+                // 3: Hinab zum Juwelier JOIAS (EG) - Luisa, Julius und Schaufenster, geradlinig zentriert!
+                {
+                    camX: 0, camY: -1.0, camZ: 18.5, lookX: 0, lookY: -1.6, lookZ: -1.0,
+                    skyTop: new THREE.Color('#1f1933'),
+                    skyHorizon: new THREE.Color('#4a2545'),
+                    skyBottom: new THREE.Color('#2b2d42'),
+                    fogCol: new THREE.Color('#2b2d42'),
+                    amb: 0.72
+                },
+                // 4: Kanalisation & Katakomben - fokussierter Blick auf die Maulwürfe!
+                {
+                    camX: 0, camY: -16.0, camZ: 17.0, lookX: 0, lookY: -16.5, lookZ: -1.0,
+                    skyTop: new THREE.Color('#100b1e'),
+                    skyHorizon: new THREE.Color('#201426'),
+                    skyBottom: new THREE.Color('#150d0a'),
+                    fogCol: new THREE.Color('#19110c'),
+                    amb: 0.48
+                },
+                // 5: Underground Rave Cave - DJ Booth & Lichtshow
+                {
+                    camX: 0, camY: -33.5, camZ: 18.0, lookX: 0, lookY: -34.8, lookZ: -3.0,
+                    skyTop: new THREE.Color('#05020c'),
+                    skyHorizon: new THREE.Color('#16082b'),
+                    skyBottom: new THREE.Color('#070312'),
+                    fogCol: new THREE.Color('#070312'),
+                    amb: 0.35
+                }
+            ];
+
+            let scrollProgress = 0;
+            let smoothProgress = 0;
+            let userOrbitX = 0;
+            let userOrbitY = 0;
+            let targetOrbitX = 0;
+            let targetOrbitY = 0;
+
+            function updateScrollProgress() {
+                const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                const raw = window.scrollY / maxScroll;
+                scrollProgress = Math.max(0, Math.min(5, raw * 5));
+            }
+            window.addEventListener('scroll', updateScrollProgress, { passive: true });
+            updateScrollProgress();
+
+            // Touch- & Maus-Drag für sanften, ruhigen 3D-Blick (kein störendes Wackeln!)
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+
+            window.addEventListener('pointerdown', (e) => {
+                if (e.target.closest('button') || e.target.closest('input')) return;
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+            }, { passive: true });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                targetOrbitX = Math.max(-0.85, Math.min(0.85, targetOrbitX + dx * 0.005));
+                targetOrbitY = Math.max(-0.35, Math.min(0.35, targetOrbitY - dy * 0.0035));
+            }, { passive: true });
+
+            window.addEventListener('pointerup', () => {
+                isDragging = false;
+            }, { passive: true });
+
+            // ============================================================================
+            // 7. SPOTIFY & WHATSAPP INTEGRATION (SCHLICHT & PERSÖNLICH)
+            // ============================================================================
+            const spotifyInput = document.getElementById('spotify-input');
+            const btnSendWhatsApp = document.getElementById('btn-send-whatsapp');
+
+            if (btnSendWhatsApp) {
+                btnSendWhatsApp.addEventListener('click', () => {
+                    const val = (spotifyInput ? spotifyInput.value || '' : '').trim();
+                    const text = val
+                        ? `Hey Julius! 🎧 Hier sind meine Songwünsche / Playlist für unsere DJ-Session in der Rave Cave:\n${val}\nIch freu mich schon mega drauf! 🔥`
+                        : `Hey Julius! 🎧 Ich freu mich schon mega auf unsere DJ-Session in der Rave Cave! Lass uns bald auflegen! 🎶🔥`;
+                    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                    window.open(waUrl, '_blank');
+                });
+            }
+
+            const sections = document.querySelectorAll('.scene-section');
+            const secObserver = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    } else {
+                        entry.target.classList.remove('active');
+                    }
+                });
+            }, { threshold: 0.15 });
+            sections.forEach((s) => secObserver.observe(s));
+
+            // ============================================================================
+            // 8. RESPONSIVE KAMERA-ANPASSUNG (SMARTPHONE HOCHFORMAT OPTIMIERUNG)
+            // ============================================================================
+            function updateResponsiveCamera() {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const aspect = w / h;
+                camera.aspect = aspect;
+                // Ruhiges, fokussiertes Blickfeld (48°): Verhindert extremes Fisheye oder gleichzeitiges Sehen mehrerer Etagen!
+                camera.fov = 48;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            }
+            updateResponsiveCamera();
+
+            // ============================================================================
+            // 9. HAUPT-ANIMATIONSSCHLEIFE (FLÜSSIGE 60FPS SHADER ATMOSPHÄRE)
+            // ============================================================================
+            const clock = new THREE.Clock();
+            const currTop = new THREE.Color();
+            const currHorizon = new THREE.Color();
+            const currBottom = new THREE.Color();
+            const currFog = new THREE.Color();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const t = clock.getElapsedTime();
+
+                // 1. Kamera-Interpolation entlang der zusammenhängenden Welt
+                smoothProgress += (scrollProgress - smoothProgress) * 0.08;
+                const idx = Math.min(4, Math.floor(smoothProgress));
+                const fract = smoothProgress - idx;
+                const k1 = keyframes[idx];
+                const k2 = keyframes[idx + 1];
+
+                const k1CamX = k1.camX !== undefined ? k1.camX : 0;
+                const k2CamX = k2.camX !== undefined ? k2.camX : 0;
+                const k1LookX = k1.lookX !== undefined ? k1.lookX : 0;
+                const k2LookX = k2.lookX !== undefined ? k2.lookX : 0;
+
+                const baseCamX = THREE.MathUtils.lerp(k1CamX, k2CamX, fract);
+                const baseCamY = THREE.MathUtils.lerp(k1.camY, k2.camY, fract);
+                const baseCamZ = THREE.MathUtils.lerp(k1.camZ, k2.camZ, fract);
+                const baseLookX = THREE.MathUtils.lerp(k1LookX, k2LookX, fract);
+                const baseLookY = THREE.MathUtils.lerp(k1.lookY, k2.lookY, fract);
+                const baseLookZ = THREE.MathUtils.lerp(k1.lookZ, k2.lookZ, fract);
+
+                // Minecraft-Style dynamischer Atmosphären-Shader (Farb-Interpolation)
+                currTop.copy(k1.skyTop).lerp(k2.skyTop, fract);
+                currHorizon.copy(k1.skyHorizon).lerp(k2.skyHorizon, fract);
+                currBottom.copy(k1.skyBottom).lerp(k2.skyBottom, fract);
+                currFog.copy(k1.fogCol).lerp(k2.fogCol, fract);
+
+                skyMat.uniforms.topColor.value.copy(currTop);
+                skyMat.uniforms.horizonColor.value.copy(currHorizon);
+                skyMat.uniforms.bottomColor.value.copy(currBottom);
+                scene.fog.color.copy(currFog);
+
+                ambientLight.intensity = THREE.MathUtils.lerp(k1.amb, k2.amb, fract);
+
+                // Ruhige, stabile Kameraführung: KEIN automatisches Wackeln!
+                if (!isDragging) {
+                    targetOrbitX *= 0.94;
+                    targetOrbitY *= 0.94;
+                }
+                userOrbitX += (targetOrbitX - userOrbitX) * 0.1;
+                userOrbitY += (targetOrbitY - userOrbitY) * 0.1;
+
+                camera.position.x = baseCamX + userOrbitX * 7.5;
+                camera.position.z = baseCamZ + (1 - Math.cos(userOrbitX)) * -3.0;
+                camera.position.y = baseCamY + userOrbitY * 4.0;
+                camera.lookAt(baseLookX, baseLookY, baseLookZ);
+
+                // 2. Himmel-Animationen
+                clouds.forEach((c) => {
+                    c.mesh.position.x = c.baseX + Math.sin(t * c.speed + c.offset) * 2.2;
+                });
+
+                cakeGroup.rotation.y = Math.sin(t * 0.5) * 0.25;
+                candleFlames.forEach((f, i) => {
+                    f.scale.y = 0.35 + Math.sin(t * 12 + i * 2) * 0.12;
+                });
+
+                balloons3D.forEach((b) => {
+                    b.y += b.speed;
+                    if (b.y > 18) b.y = -18;
+                    b.mesh.position.y = b.y;
+                    b.mesh.position.x = b.baseX + Math.sin(t * 1.4 + b.phase) * 0.8;
+                    b.mesh.rotation.y = Math.sin(t * 0.8 + b.phase) * 0.3;
+                });
+
+                confetti3D.forEach((c) => {
+                    c.mesh.position.y -= c.speedY;
+                    if (c.mesh.position.y < -16) c.mesh.position.y = 16;
+                    c.mesh.rotation.x += c.rotSpeed;
+                    c.mesh.rotation.y += c.rotSpeed;
+                });
+
+                // 3. Lissabon-Panorama: Sonnen-Glow, Minecraft God-Rays, goldene Motes, Wellen & Tram 28
+                sunRaysGroup.rotation.z = t * 0.08;
+                const haloPulse = 75 + Math.sin(t * 2.2) * 6;
+                sunHaloSprite1.scale.set(haloPulse, haloPulse, 1);
+
+                // Minecraft God-Rays sanft pulsieren lassen
+                godRaysGroup.rotation.z = Math.sin(t * 0.2) * 0.04;
+
+                // Schwebende goldene Partikel in Lissabon
+                goldenMotes.forEach((gm) => {
+                    gm.mesh.position.y = gm.baseY + Math.sin(t * gm.speed + gm.phase) * 1.4;
+                    gm.mesh.position.x = gm.baseX + Math.cos(t * 0.6 * gm.speed + gm.phase) * 0.8;
+                    gm.mesh.rotation.y += 0.02;
+                });
+
+                waterWaves.forEach((w) => {
+                    w.mesh.position.y = w.baseY + Math.sin(t * 2.4 + w.phase) * 0.22;
+                });
+
+                bridgeCars.forEach((bc) => {
+                    bc.mesh.position.x += bc.speed * bc.dir;
+                    if (bc.dir > 0 && bc.mesh.position.x > 75) bc.mesh.position.x = -75;
+                    if (bc.dir < 0 && bc.mesh.position.x < -75) bc.mesh.position.x = 75;
+                });
+
+                tramGroup.position.x = -24 + ((t * 4.2) % 48);
+
+                // 4. Hausfassade: Luisa auf dem Balkon (1. OG) & im Juwelierladen (EG)
+                const beatBounce = Math.abs(Math.sin(t * 4.5)) * 0.16;
+                luisaBalcony.position.y = 8.6 + beatBounce;
+                luisaBalcony.userData.head.rotation.y = Math.sin(t * 1.8) * 0.22;
+
+                jewels3D.forEach((jg, i) => {
+                    const bY = (jg.userData && jg.userData.baseY !== undefined) ? jg.userData.baseY : -0.5;
+                    if (jg.userData && jg.userData.isSpin) {
+                        jg.rotation.y = t * 2.2;
+                        jg.position.y = bY + Math.sin(t * 3.5) * 0.05;
+                    } else if (jg.userData && jg.userData.isSlow) {
+                        jg.rotation.y = Math.sin(t * 1.2) * 0.18;
+                        jg.position.y = bY;
+                    } else if (jg.userData && jg.userData.isSway) {
+                        jg.rotation.y = Math.sin(t * 1.6 + i) * 0.25;
+                        jg.position.y = bY + Math.sin(t * 2.0 + i) * 0.03;
+                    } else if (jg.userData && jg.userData.isHover) {
+                        jg.position.y = bY + Math.sin(t * 2.5 + i) * 0.05;
+                    } else {
+                        jg.rotation.y = Math.sin(t * 1.4 + i) * 0.15;
+                        jg.position.y = bY + Math.sin(t * 2.2 + i) * 0.04;
+                    }
+                });
+
+                sparkles.forEach((sp, idx) => {
+                    sp.rotation.z = t * 1.8 + idx;
+                    const spScale = 0.7 + Math.sin(t * 4.0 + idx * 1.5) * 0.35;
+                    sp.scale.setScalar(spScale);
+                });
+
+                luisaShop.userData.head.rotation.y = Math.sin(t * 1.5) * 0.2;
+                brotherShop.userData.head.rotation.y = -Math.sin(t * 1.5) * 0.2;
+
+                // 5. Kanalisation & Maulwürfe
+                powerPulses.forEach((pp) => {
+                    pp.mesh.position.y -= pp.speed;
+                    if (pp.mesh.position.y < -24) pp.mesh.position.y = -8;
+                });
+                moles3D.forEach((m) => {
+                    m.group.position.y = m.baseY + Math.sin(t * 2.5 + m.phase) * 0.12;
+                    m.group.rotation.y = m.baseRotY + Math.sin(t * 1.5 + m.phase) * 0.15;
+                });
+
+                // 6. Rave Cave Animationen
+                turntables.forEach((tt) => {
+                    tt.rotation.y += 0.08;
+                });
+
+                eqBars.forEach((eb) => {
+                    const s = 0.3 + Math.abs(Math.sin(t * 7.5 + eb.idx * 0.6)) * 1.6;
+                    eb.mesh.scale.y = s;
+                    eb.mesh.position.y = -1.4 + s * 0.45;
+                });
+
+                const bassPulse = 1 + Math.pow(Math.max(0, Math.sin(t * 8.0)), 3) * 0.22;
+                speakerWoofers.forEach((sw) => {
+                    sw.scale.set(2.6 * bassPulse, 2.6 * bassPulse, 0.45 * bassPulse);
+                });
+
+                lasers3D.forEach((l) => {
+                    l.mesh.rotation.z = Math.sin(t * 1.8 + l.idx * 1.1) * 0.52;
+                    l.mesh.rotation.x = 0.2 + Math.cos(t * 1.4 + l.idx) * 0.32;
+                });
+
+                danceTiles.forEach((dt) => {
+                    dt.mesh.material.emissiveIntensity = 0.25 + Math.abs(Math.sin(t * 4.0 + dt.phase)) * 0.65;
+                });
+
+                ravers3D.forEach((rv) => {
+                    const jump = Math.abs(Math.sin(t * 6.5 + rv.phase)) * 0.85;
+                    rv.group.position.y = rv.baseY + jump;
+                });
+
+                const djJump = Math.abs(Math.sin(t * 6.5)) * 0.28;
+                luisaDJ.position.y = -5.4 + djJump;
+                brotherDJ.position.y = -5.4 + djJump;
+                luisaDJ.userData.head.rotation.z = Math.sin(t * 6.5) * 0.1;
+                brotherDJ.userData.head.rotation.z = -Math.sin(t * 6.5) * 0.1;
+
+                renderer.render(scene, camera);
+            }
+
+            window.addEventListener('resize', updateResponsiveCamera);
+
+            animate();
+        };
+    </script>
+</body>
+
+</html>
